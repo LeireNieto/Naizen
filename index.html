@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Gestión de Actividades</title>
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- Font Awesome CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Gestión de Actividades</h1>
+
+    <div class="controls">
+      <select id="actividadFilter">
+        <option value="">-- Selecciona actividad --</option>
+      </select>
+      <button id="importBtn">Importar participantes</button>
+      <button id="createGroupBtn">Crear grupo en WhatsApp</button>
+      <button id="addParticipantsBtn">Añadir participantes</button>
+    </div>
+
+    <div id="status" class="status">Esperando acción...</div>
+
+    <table id="participants">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Teléfono</th>
+          <th>WhatsApp</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Participantes se agregan aquí -->
+      </tbody>
+    </table>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

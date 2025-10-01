@@ -1,0 +1,84 @@
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f0f2f5;
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  max-width: 800px;
+  margin: 50px auto;
+  text-align: center;
+  background: white;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+h1 {
+  margin-bottom: 20px;
+}
+
+.controls {
+  margin-bottom: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.controls input, .controls button, .controls select {
+  padding: 10px 15px;
+  font-size: 14px;
+}
+
+#status {
+  margin: 15px 0;
+  font-weight: bold;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+th, td {
+  border: 1px solid #ddd;
+  padding: 12px 15px;
+  text-align: center;
+}
+
+th {
+  background-color: #f5f5f5;
+}
+
+td a.whatsapp {
+  color: #25D366;
+  font-size: 22px;
+  text-decoration: none;
+}
+
+td a i.fab.fa-whatsapp {
+  color: #25D366;
+  font-size: 22px;
+}
+
+td a.whatsapp i.fab.fa-whatsapp {
+  color: #25D366;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+
+.status-icon {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-left: 5px;
+}
+
+.status-icon.pending { background: gray; }
+.status-icon.success { background: green; }
+.status-icon.error { background: red; }
