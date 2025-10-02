@@ -1,3 +1,8 @@
+/* ------------------ CONFIG ------------------ */
+// Poner tu API real de WhatsApp aquí si la tienes
+const API_URL = ""; // Ej: "https://graph.facebook.com/v16.0/NUMERO_PHONE_ID"
+const TOKEN = "";   // Tu token real de WhatsApp Cloud API
+
 /* ------------------ Estado y DOM ------------------ */
 const actividadFilter = document.getElementById('actividadFilter');
 const importBtn = document.getElementById('importBtn');
@@ -8,7 +13,7 @@ const participantsDiv = document.querySelector('#participants tbody');
 
 let groupId = null;
 let allParticipants = []; // Todos los participantes del CSV
-let participants = []; // Participantes filtrados por actividad
+let participants = [];    // Participantes filtrados por actividad
 
 /* ------------------ Helpers ------------------ */
 function showStatus(msg, color){
@@ -50,7 +55,7 @@ function renderParticipants(){
   });
 }
 
-/* ------------------ Inicializar actividades ------------------ */
+/* ------------------ Inicializar CSV ------------------ */
 async function loadCSVandFillActivities(){
   try {
     const resp = await fetch('./participantes.csv');
@@ -99,22 +104,73 @@ importBtn.addEventListener('click', () => {
   showStatus(`✅ ${participants.length} participantes importados para "${actividadSeleccionada}".`, 'green');
 });
 
-// Crear grupo en WhatsApp (simulado)
+// Crear grupo en WhatsApp
 createGroupBtn.addEventListener('click', async () => {
   if(!actividadFilter.value){ showStatus('❌ Selecciona una actividad.', 'red'); return; }
   if(participants.length===0){ showStatus('❌ Importa primero los participantes.', 'red'); return; }
+
   showStatus('Creando grupo...', 'black');
-  groupId = 'grupo-simulado-123';
-  showStatus(`✅ Grupo creado (id: ${groupId})`, 'green');
+
+  if(API_URL && TOKEN){
+    // Aquí se haría la llamada real al API de WhatsApp
+    try {
+      const res = await fetch(`${API_URL}/groups`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${TOKEN}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          subject: actividadFilter.value,
+          participants: [normalizarTelefono(participants[0].telefono)]
+        })
+      });
+      const data = await res.json();
+      groupId = data.id || data.groupId;
+      showStatus(groupId ? `✅ Grupo creado (id: ${groupId})` : '❌ Error creando grupo', groupId ? 'green' : 'red');
+    } catch(err) {
+      console.error(err);
+      showStatus('❌ Error creando grupo real', 'red');
+    }
+  } else {
+    // Simulación
+    groupId = 'grupo-simulado-123';
+    showStatus(`✅ Grupo creado (simulado)`, 'green');
+  }
 });
 
-// Añadir participantes al grupo (simulado)
+// Añadir participantes al grupo
 addParticipantsBtn.addEventListener('click', async () => {
   if(!groupId){ showStatus('❌ Crea primero el grupo.', 'red'); return; }
   if(participants.length===0){ showStatus('❌ No hay participantes.', 'red'); return; }
-  participants = participants.map(p=>({...p,status:'success'}));
-  renderParticipants();
-  showStatus('✅ Participantes añadidos.', 'green');
+
+  if(API_URL && TOKEN){
+    try {
+      const telefonos = participants.map(p => normalizarTelefono(p.telefono));
+      const res = await fetch(`${API_URL}/groups/${encodeURIComponent(groupId)}/participants`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${TOKEN}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ participants: telefonos })
+      });
+      const data = await res.json();
+      participants = participants.map(p=>({...p,status: res.ok ? 'success' : 'error'}));
+      renderParticipants();
+      showStatus(res.ok ? '✅ Participantes añadidos.' : '❌ Error al añadir participantes.', res.ok ? 'green' : 'red');
+    } catch(err){
+      console.error(err);
+      participants = participants.map(p=>({...p,status:'error'}));
+      renderParticipants();
+      showStatus('❌ Error añadiendo participantes', 'red');
+    }
+  } else {
+    // Simulación
+    participants = participants.map(p=>({...p,status:'success'}));
+    renderParticipants();
+    showStatus('✅ Participantes añadidos (simulado).', 'green');
+  }
 });
 
 /* ------------------ Inicializar app ------------------ */
