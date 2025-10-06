@@ -4,31 +4,46 @@
   <meta charset="UTF-8">
   <title>Gestión de Actividades</title>
   <link rel="stylesheet" href="style.css">
-  
-  <!-- Font Awesome CDN -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-
-
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 </head>
-
 <body>
   <div class="container">
     <img src="Naizenlogo.png" alt="Logo" class="logo">
     <h1>Grupos de Actividades</h1>
 
+    <!-- FORMULARIO PARA DAR DE ALTA ACTIVIDAD -->
+    <div class="activity-form">
+      <input type="text" id="activityName" placeholder="Nombre de la actividad">
+      
+      <select id="inputMethod">
+        <option value="">-- Selecciona método de carga --</option>
+        <option value="csv">Subir CSV</option>
+        <option value="url">URL Google Sheet (CSV)</option>
+        <option value="paste">Copy & Paste</option>
+      </select>
+      
+      <input type="file" id="csvFile" accept=".csv" style="display:none;">
+      <input type="text" id="sheetUrl" placeholder="URL Google Sheet" style="display:none;">
+      <textarea id="pasteData" placeholder="Pega aquí tus datos" style="display:none;"></textarea>
+      
+      <button id="addActivityBtn">Agregar actividad</button>
+    </div>
+
+    <hr>
+
+    <!-- FILTRO Y BOTONES -->
     <div class="controls">
       <select id="actividadFilter">
         <option value="">-- Selecciona actividad --</option>
       </select>
-      
-      <button id="importBtn">Importar participantes</button>
       <button id="createGroupBtn">Crear grupo en WhatsApp</button>
       <button id="addParticipantsBtn">Añadir participantes</button>
     </div>
 
     <div id="status" class="status">Esperando acción...</div>
 
+    <!-- TABLA DE PARTICIPANTES -->
     <table id="participants">
       <thead>
         <tr>
@@ -38,7 +53,6 @@
         </tr>
       </thead>
       <tbody>
-        <!-- Participantes se agregan aquí -->
       </tbody>
     </table>
   </div>

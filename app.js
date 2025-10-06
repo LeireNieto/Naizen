@@ -1,43 +1,30 @@
-/* ------------------ CONFIG ------------------ */
-// Poner tu API real de WhatsApp aquí si la tienes
-const API_URL = ""; // Ej: "https://graph.facebook.com/v16.0/NUMERO_PHONE_ID"
-const TOKEN = "";   // Tu token real de WhatsApp Cloud API
-
-/* ------------------ Estado y DOM ------------------ */
+/* ------------------ Estado ------------------ */
 const actividadFilter = document.getElementById('actividadFilter');
-const importBtn = document.getElementById('importBtn');
+const addActivityBtn = document.getElementById('addActivityBtn');
+const inputMethod = document.getElementById('inputMethod');
+const csvFile = document.getElementById('csvFile');
+const sheetUrl = document.getElementById('sheetUrl');
+const pasteData = document.getElementById('pasteData');
+const activityNameInput = document.getElementById('activityName');
+
 const createGroupBtn = document.getElementById('createGroupBtn');
 const addParticipantsBtn = document.getElementById('addParticipantsBtn');
 const statusDiv = document.getElementById('status');
 const participantsDiv = document.querySelector('#participants tbody');
 
+let allActivities = {}; // {actividad: [participantes]}
+let participants = [];   // participantes filtrados
 let groupId = null;
-let allParticipants = []; // Todos los participantes del CSV
-let participants = [];    // Participantes filtrados por actividad
 
 /* ------------------ Helpers ------------------ */
-function showStatus(msg, color){
-  statusDiv.textContent = msg;
-  statusDiv.style.color = color || 'black';
-}
-
-function normalizarTelefono(tel){
-  if(!tel) return "";
-  return tel.toString().replace(/\D/g, "");
-}
-
-/* ------------------ Render ------------------ */
+function showStatus(msg, color='black'){ statusDiv.textContent = msg; statusDiv.style.color = color; }
+function normalizarTelefono(tel){ return tel.toString().replace(/\D/g,''); }
 function renderParticipants(){
-  participantsDiv.innerHTML = "";
+  participantsDiv.innerHTML = '';
   participants.forEach(p => {
     const tr = document.createElement('tr');
-
-    const tdNombre = document.createElement('td'); 
-    tdNombre.textContent = p.nombre;
-
-    const tdTelefono = document.createElement('td'); 
-    tdTelefono.textContent = p.telefono;
-
+    const tdNombre = document.createElement('td'); tdNombre.textContent = p.nombre;
+    const tdTelefono = document.createElement('td'); tdTelefono.textContent = p.telefono;
     const tdWhatsApp = document.createElement('td');
     const textMsg = `Hola ${p.nombre}, te confirmo para la actividad ${p.actividad}`;
     tdWhatsApp.innerHTML = `
@@ -46,132 +33,92 @@ function renderParticipants(){
       </a>
       <span class="status-icon ${p.status || 'pending'}"></span>
     `;
-
-    tr.appendChild(tdNombre);
-    tr.appendChild(tdTelefono);
-    tr.appendChild(tdWhatsApp);
-
+    tr.appendChild(tdNombre); tr.appendChild(tdTelefono); tr.appendChild(tdWhatsApp);
     participantsDiv.appendChild(tr);
   });
 }
-
-/* ------------------ Inicializar CSV ------------------ */
-async function loadCSVandFillActivities(){
-  try {
-    const resp = await fetch('./participantes.csv');
-    if(!resp.ok) throw new Error('No se pudo cargar el CSV local');
-    const csvText = await resp.text();
-    Papa.parse(csvText, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        allParticipants = results.data.map(r => {
-          const nombre = (r['Nombre']?.trim() || r['name']?.trim() || '');
-          const telefono = (r['Teléfono']?.trim() || r['Telefono']?.trim() || r['telefono']?.trim() || r['phone']?.trim() || '');
-          const actividad = (r['Actividad']?.trim() || r['actividad']?.trim() || '');
-          return { nombre, telefono: normalizarTelefono(telefono), actividad, status:'pending' };
-        }).filter(p => p.nombre && p.telefono && p.actividad);
-
-        // Llenar select de actividades
-        const actividades = [...new Set(allParticipants.map(p => p.actividad))];
-        actividadFilter.innerHTML = '<option value="">-- Selecciona actividad --</option>';
-        actividades.forEach(act => {
-          const option = document.createElement('option');
-          option.value = act; option.textContent = act;
-          actividadFilter.appendChild(option);
-        });
-
-        showStatus(`✅ CSV cargado. ${actividades.length} actividades disponibles.`, 'green');
-      },
-      error: (err) => { console.error(err); showStatus('❌ Error parseando CSV', 'red'); }
-    });
-  } catch(err) {
-    console.error(err);
-    showStatus('❌ Error al cargar CSV: ' + err.message, 'red');
-  }
+function actualizarFiltro(){
+  actividadFilter.innerHTML = '<option value="">-- Selecciona actividad --</option>';
+  Object.keys(allActivities).forEach(act => {
+    const option = document.createElement('option');
+    option.value = act; option.textContent = act;
+    actividadFilter.appendChild(option);
+  });
 }
 
-/* ------------------ Eventos ------------------ */
-// Filtrar participantes por actividad seleccionada
-importBtn.addEventListener('click', () => {
-  const actividadSeleccionada = actividadFilter.value;
-  if(!actividadSeleccionada){
-    showStatus('❌ Selecciona primero una actividad.', 'red');
-    return;
+/* ------------------ Manejo inputs dinámicos ------------------ */
+inputMethod.addEventListener('change',()=>{
+  csvFile.style.display = 'none';
+  sheetUrl.style.display = 'none';
+  pasteData.style.display = 'none';
+  if(inputMethod.value==='csv') csvFile.style.display='block';
+  else if(inputMethod.value==='url') sheetUrl.style.display='block';
+  else if(inputMethod.value==='paste') pasteData.style.display='block';
+});
+
+/* ------------------ Agregar actividad ------------------ */
+addActivityBtn.addEventListener('click',async()=>{
+  const nombre = activityNameInput.value.trim();
+  if(!nombre){ showStatus('❌ Ingresa nombre de actividad', 'red'); return; }
+  if(!inputMethod.value){ showStatus('❌ Selecciona método de carga', 'red'); return; }
+
+  let participantes = [];
+
+  try{
+    if(inputMethod.value==='csv'){
+      if(!csvFile.files[0]){ showStatus('❌ Selecciona un archivo CSV', 'red'); return; }
+      const text = await csvFile.files[0].text();
+      participantes = parseCSV(text);
+    }else if(inputMethod.value==='url'){
+      if(!sheetUrl.value){ showStatus('❌ Ingresa URL de Google Sheet', 'red'); return; }
+      const resp = await fetch(sheetUrl.value);
+      if(!resp.ok) throw new Error('No se pudo acceder a la URL');
+      const text = await resp.text();
+      participantes = parseCSV(text);
+    }else if(inputMethod.value==='paste'){
+      if(!pasteData.value){ showStatus('❌ Pega los datos', 'red'); return; }
+      participantes = parseCSV(pasteData.value);
+    }
+    // Guardar participantes en actividad
+    allActivities[nombre] = participantes;
+    showStatus(`✅ Actividad "${nombre}" agregada con ${participantes.length} participantes.`, 'green');
+    actualizarFiltro();
+  }catch(err){
+    console.error(err); showStatus('❌ Error al procesar participantes: '+err.message,'red');
   }
-  participants = allParticipants.filter(p => p.actividad === actividadSeleccionada);
+});
+
+/* ------------------ Parse CSV simple ------------------ */
+function parseCSV(text){
+  const result = Papa.parse(text.trim(), {header:true, skipEmptyLines:true});
+  return result.data.map(r=>{
+    const nombre = (r['Nombre']||r['name']||'').trim();
+    const telefono = normalizarTelefono(r['Teléfono']||r['Telefono']||r['telefono']||r['phone']||'');
+    return {nombre, telefono, actividad:'', status:'pending'};
+  }).filter(p=>p.nombre && p.telefono);
+}
+
+/* ------------------ Filtrar participantes ------------------ */
+actividadFilter.addEventListener('change',()=>{
+  const act = actividadFilter.value;
+  if(!act){ participants = []; renderParticipants(); showStatus('Esperando acción...'); return; }
+  participants = allActivities[act].map(p=>({...p, actividad:act, status:'pending'}));
   renderParticipants();
-  showStatus(`✅ ${participants.length} participantes importados para "${actividadSeleccionada}".`, 'green');
+  showStatus(`✅ ${participants.length} participantes para "${act}".`,'green');
 });
 
-// Crear grupo en WhatsApp
-createGroupBtn.addEventListener('click', async () => {
-  if(!actividadFilter.value){ showStatus('❌ Selecciona una actividad.', 'red'); return; }
-  if(participants.length===0){ showStatus('❌ Importa primero los participantes.', 'red'); return; }
-
-  showStatus('Creando grupo...', 'black');
-
-  if(API_URL && TOKEN){
-    // Aquí se haría la llamada real al API de WhatsApp
-    try {
-      const res = await fetch(`${API_URL}/groups`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${TOKEN}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          subject: actividadFilter.value,
-          participants: [normalizarTelefono(participants[0].telefono)]
-        })
-      });
-      const data = await res.json();
-      groupId = data.id || data.groupId;
-      showStatus(groupId ? `✅ Grupo creado (id: ${groupId})` : '❌ Error creando grupo', groupId ? 'green' : 'red');
-    } catch(err) {
-      console.error(err);
-      showStatus('❌ Error creando grupo real', 'red');
-    }
-  } else {
-    // Simulación
-    groupId = 'grupo-simulado-123';
-    showStatus(`✅ Grupo creado (simulado)`, 'green');
-  }
+/* ------------------ Simulación WhatsApp ------------------ */
+createGroupBtn.addEventListener('click',()=>{
+  if(!actividadFilter.value){ showStatus('❌ Selecciona actividad','red'); return; }
+  if(participants.length===0){ showStatus('❌ No hay participantes','red'); return; }
+  groupId = 'grupo-simulado-123';
+  showStatus(`✅ Grupo creado (simulado)`, 'green');
 });
 
-// Añadir participantes al grupo
-addParticipantsBtn.addEventListener('click', async () => {
-  if(!groupId){ showStatus('❌ Crea primero el grupo.', 'red'); return; }
-  if(participants.length===0){ showStatus('❌ No hay participantes.', 'red'); return; }
-
-  if(API_URL && TOKEN){
-    try {
-      const telefonos = participants.map(p => normalizarTelefono(p.telefono));
-      const res = await fetch(`${API_URL}/groups/${encodeURIComponent(groupId)}/participants`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${TOKEN}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ participants: telefonos })
-      });
-      const data = await res.json();
-      participants = participants.map(p=>({...p,status: res.ok ? 'success' : 'error'}));
-      renderParticipants();
-      showStatus(res.ok ? '✅ Participantes añadidos.' : '❌ Error al añadir participantes.', res.ok ? 'green' : 'red');
-    } catch(err){
-      console.error(err);
-      participants = participants.map(p=>({...p,status:'error'}));
-      renderParticipants();
-      showStatus('❌ Error añadiendo participantes', 'red');
-    }
-  } else {
-    // Simulación
-    participants = participants.map(p=>({...p,status:'success'}));
-    renderParticipants();
-    showStatus('✅ Participantes añadidos (simulado).', 'green');
-  }
+addParticipantsBtn.addEventListener('click',()=>{
+  if(!groupId){ showStatus('❌ Crea primero el grupo','red'); return; }
+  if(participants.length===0){ showStatus('❌ No hay participantes','red'); return; }
+  participants = participants.map(p=>({...p,status:'success'}));
+  renderParticipants();
+  showStatus('✅ Participantes añadidos (simulado).', 'green');
 });
-
-/* ------------------ Inicializar app ------------------ */
-loadCSVandFillActivities();
