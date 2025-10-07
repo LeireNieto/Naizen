@@ -13,20 +13,16 @@
     <h1>Grupos de Actividades</h1>
 
     <!-- FORMULARIO PARA DAR DE ALTA ACTIVIDAD -->
-    <div class="activity-form">
-      <input type="text" id="activityName" placeholder="Nombre de la actividad">
-      
-      <select id="inputMethod">
-        <option value="">-- Selecciona método de carga --</option>
-            </select>
-      
-      <input type="file" id="csvFile" accept=".csv" style="display:none;">
-      <input type="text" id="sheetUrl" placeholder="URL Google Sheet" style="display:none;">
-      <textarea id="pasteData" placeholder="Pega aquí tus datos" style="display:none;"></textarea>
-      
-      <button id="addActivityBtn">Agregar actividad</button>
-    </div>
-
+  <div class="activity-form">
+  <label for="activityName">
+    Nombre de la actividad:
+    </label>
+  <input type="text" id="activityName" placeholder="Ejemplo: Taller de pintura">
+  
+  <input type="file" id="csvFile" accept=".csv">
+  
+  <button id="addActivityBtn">Agregar actividad</button>
+</div>
     <hr>
 
     <!-- FILTRO Y BOTONES -->
