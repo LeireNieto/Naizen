@@ -28,7 +28,7 @@ body {
 h1 {
   margin-bottom: 30px;
   font-size: 23;
-  color: #333;
+  color: #10900a;
 }
 
 /* -------------------- Formulario de actividad -------------------- */
@@ -89,7 +89,7 @@ h1 {
   padding: 10px 15px;
   font-size: 14px;
   border-radius: 5px;
-  border: 1px solid #ccc;
+  border: 1px solid #8ee382;
 }
 
 /* -------------------- Estado -------------------- */
