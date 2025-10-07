@@ -1,23 +1,19 @@
 /* ------------------ CONFIG ------------------ */
-// API de WhatsApp (está vacío poruqe es sólo simulación)
-const API_URL = "";
-const TOKEN = "";
+const API_URL = "https://api.whatsappprovider.com/v1"; // URL de tu proveedor
+const API_KEY = "RINr52I95oPGV6ccVuF7LqPWx6IuT900"; // Tu API Key
 
 /* ------------------ Estado y DOM ------------------ */
 const actividadFilter = document.getElementById('actividadFilter');
-const createGroupBtn = document.getElementById('createGroupBtn');
 const addParticipantsBtn = document.getElementById('addParticipantsBtn');
 const statusDiv = document.getElementById('status');
 const participantsDiv = document.querySelector('#participants tbody');
 
-// Formulario para crear actividad
 const activityNameInput = document.getElementById('activityName');
 const csvFileInput = document.getElementById('csvFile');
 const addActivityBtn = document.getElementById('addActivityBtn');
 
 let activities = {};  // { actividad: [participantes] }
 let currentParticipants = [];
-let groupId = null;
 
 /* ------------------ Helpers ------------------ */
 function showStatus(msg, color){
@@ -27,7 +23,7 @@ function showStatus(msg, color){
 
 function normalizarTelefono(tel){
   if(!tel) return "";
-  return tel.toString().replace(/\D/g, "");
+  return tel.toString().replace(/\D/g, ""); // sin símbolos ni espacios
 }
 
 /* ------------------ Render ------------------ */
@@ -61,9 +57,9 @@ function parseCSV(text){
   });
 
   return result.data.map(row => {
-    if (row.length < 3) return null; // aseguramos que tenga al menos 3 columnas
-    const nombre = (row[1] || '').trim(); // columna 2
-    const telefono = normalizarTelefono(row[2] || ''); // columna 3
+    if (row.length < 3) return null;
+    const nombre = (row[1] || '').trim();
+    const telefono = normalizarTelefono(row[2] || '');
     return (nombre && telefono) ? { nombre, telefono, actividad:'', status:'pending' } : null;
   }).filter(Boolean);
 }
@@ -100,17 +96,10 @@ csvFileInput.style.display = 'block';
 // Crear actividad solo con CSV
 addActivityBtn.addEventListener('click', async () => {
   const name = activityNameInput.value.trim();
-
-  if(!name){
-    showStatus('❌ Escribe un nombre de actividad.', 'red');
-    return;
-  }
+  if(!name){ showStatus('❌ Escribe un nombre de actividad.', 'red'); return; }
 
   const file = csvFileInput.files[0];
-  if(!file){
-    showStatus('❌ Sube un archivo CSV.', 'red');
-    return;
-  }
+  if(!file){ showStatus('❌ Sube un archivo CSV.', 'red'); return; }
 
   await handleFileUpload(file, name);
 });
@@ -128,68 +117,43 @@ actividadFilter.addEventListener('change', () => {
   showStatus(`Mostrando ${currentParticipants.length} participantes de "${selected}"`);
 });
 
-// Crear grupo en WhatsApp (simulado o real)
-createGroupBtn.addEventListener('click', async () => {
-  if(!actividadFilter.value){ showStatus('❌ Selecciona una actividad.', 'red'); return; }
-  if(currentParticipants.length===0){ showStatus('❌ No hay participantes.', 'red'); return; }
-
-  showStatus('Creando grupo...', 'black');
-
-  if(API_URL && TOKEN){
-    try {
-      const res = await fetch(`${API_URL}/groups`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${TOKEN}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          subject: actividadFilter.value,
-          participants: [normalizarTelefono(currentParticipants[0].telefono)]
-        })
-      });
-      const data = await res.json();
-      groupId = data.id || data.groupId;
-      showStatus(groupId ? `✅ Grupo creado (id: ${groupId})` : '❌ Error creando grupo', groupId ? 'green' : 'red');
-    } catch(err) {
-      console.error(err);
-      showStatus('❌ Error creando grupo real', 'red');
-    }
-  } else {
-    groupId = 'grupo-simulado-123';
-    showStatus(`✅ Grupo creado (simulado)`, 'green');
+/* ------------------ Enviar mensajes reales ------------------ */
+async function enviarMensaje(telefono, texto){
+  try{
+    const res = await fetch(`${API_URL}/messages`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        to: telefono,
+        type: "text",
+        text: { body: texto }
+      })
+    });
+    await res.json(); // leer respuesta
+    return res.ok;
+  } catch(err){
+    console.error(err);
+    return false;
   }
-});
+}
 
-// Añadir participantes al grupo
 addParticipantsBtn.addEventListener('click', async () => {
-  if(!groupId){ showStatus('❌ Crea primero el grupo.', 'red'); return; }
-  if(currentParticipants.length===0){ showStatus('❌ No hay participantes.', 'red'); return; }
-
-  if(API_URL && TOKEN){
-    try {
-      const telefonos = currentParticipants.map(p => normalizarTelefono(p.telefono));
-      const res = await fetch(`${API_URL}/groups/${encodeURIComponent(groupId)}/participants`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${TOKEN}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ participants: telefonos })
-      });
-      const data = await res.json();
-      currentParticipants = currentParticipants.map(p=>({...p,status: res.ok ? 'success' : 'error'}));
-      renderParticipants();
-      showStatus(res.ok ? '✅ Participantes añadidos.' : '❌ Error al añadir participantes.', res.ok ? 'green' : 'red');
-    } catch(err){
-      console.error(err);
-      currentParticipants = currentParticipants.map(p=>({...p,status:'error'}));
-      renderParticipants();
-      showStatus('❌ Error añadiendo participantes', 'red');
-    }
-  } else {
-    currentParticipants = currentParticipants.map(p=>({...p,status:'success'}));
-    renderParticipants();
-    showStatus('✅ Participantes añadidos (simulado).', 'green');
+  if(!currentParticipants.length){
+    showStatus('❌ No hay participantes.', 'red');
+    return;
   }
+
+  showStatus('Enviando mensajes...', 'black');
+
+  for(let p of currentParticipants){
+    const texto = `Hola ${p.nombre}, te confirmo para la actividad ${actividadFilter.value}`;
+    const exito = await enviarMensaje(normalizarTelefono(p.telefono), texto);
+    p.status = exito ? 'success' : 'error';
+    renderParticipants();
+  }
+
+  showStatus('✅ Mensajes enviados (revisa los estados)', 'green');
 });
