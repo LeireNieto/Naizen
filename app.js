@@ -1,5 +1,5 @@
 /* ------------------ CONFIG ------------------ */
-// API de WhatsApp (puedes dejar vacío si es solo simulación)
+// API de WhatsApp (está vacío poruqe es sólo simulación)
 const API_URL = "";
 const TOKEN = "";
 
