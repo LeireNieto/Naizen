@@ -21,13 +21,13 @@ body {
   position: absolute;
   top: 5px;
   left: 5px;
-  width: 195px;
+  width: 205px;
   height: auto;
 }
 
 h1 {
   margin-bottom: 30px;
-  font-size: 28px;
+  font-size: 23;
   color: #333;
 }
 
@@ -50,7 +50,7 @@ h1 {
 }
 
 .activity-form .form-row input[type="text"] {
-  flex: 1;        /* ocupa todo el espacio disponible */
+  flex: 1;      
   padding: 8px 12px;
   border-radius: 5px;
   border: 1px solid #ccc;
