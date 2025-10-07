@@ -12,10 +12,7 @@ const participantsDiv = document.querySelector('#participants tbody');
 
 // Formulario para crear actividad
 const activityNameInput = document.getElementById('activityName');
-const inputMethod = document.getElementById('inputMethod');
 const csvFileInput = document.getElementById('csvFile');
-const sheetUrlInput = document.getElementById('sheetUrl');
-const pasteDataTextarea = document.getElementById('pasteData');
 const addActivityBtn = document.getElementById('addActivityBtn');
 
 let activities = {};  // { actividad: [participantes] }
@@ -85,40 +82,6 @@ async function handleFileUpload(file, activityName){
   showStatus(`✅ Actividad "${activityName}" creada con ${participants.length} participantes.`, 'green');
 }
 
-/* ------------------ Cargar desde URL ------------------ */
-async function handleURLInput(url, activityName){
-  try {
-    const response = await fetch(url);
-    if(!response.ok) throw new Error("No se pudo leer el archivo remoto");
-    const text = await response.text();
-    const participants = parseCSV(text);
-    if(participants.length === 0){
-      showStatus('❌ El CSV remoto no tiene participantes válidos.', 'red');
-      return;
-    }
-    participants.forEach(p => p.actividad = activityName);
-    activities[activityName] = participants;
-    updateActivityList();
-    showStatus(`✅ Actividad "${activityName}" importada desde URL con ${participants.length} participantes.`, 'green');
-  } catch (err){
-    console.error(err);
-    showStatus('❌ Error leyendo el archivo remoto: ' + err.message, 'red');
-  }
-}
-
-/* ------------------ Cargar desde Copy & Paste ------------------ */
-function handlePasteData(data, activityName){
-  const participants = parseCSV(data);
-  if(participants.length === 0){
-    showStatus('❌ Los datos pegados no tienen participantes válidos.', 'red');
-    return;
-  }
-  participants.forEach(p => p.actividad = activityName);
-  activities[activityName] = participants;
-  updateActivityList();
-  showStatus(`✅ Actividad "${activityName}" creada desde datos pegados (${participants.length} participantes).`, 'green');
-}
-
 /* ------------------ Actualizar lista de actividades ------------------ */
 function updateActivityList(){
   actividadFilter.innerHTML = '<option value="">-- Selecciona actividad --</option>';
@@ -131,38 +94,25 @@ function updateActivityList(){
 }
 
 /* ------------------ Eventos ------------------ */
-// Mostrar input correcto según el método elegido
-inputMethod.addEventListener('change', () => {
-  csvFileInput.style.display = 'none';
-  sheetUrlInput.style.display = 'none';
-  pasteDataTextarea.style.display = 'none';
+// Mostrar siempre el input de archivo CSV
+csvFileInput.style.display = 'block';
 
-  if(inputMethod.value === 'csv') csvFileInput.style.display = 'block';
-  if(inputMethod.value === 'url') sheetUrlInput.style.display = 'block';
-  if(inputMethod.value === 'paste') pasteDataTextarea.style.display = 'block';
-});
-
-// Crear actividad según método
+// Crear actividad solo con CSV
 addActivityBtn.addEventListener('click', async () => {
   const name = activityNameInput.value.trim();
-  const method = inputMethod.value;
 
-  if(!name){ showStatus('❌ Escribe un nombre de actividad.', 'red'); return; }
-  if(!method){ showStatus('❌ Selecciona un método de carga.', 'red'); return; }
-
-  if(method === 'csv'){
-    const file = csvFileInput.files[0];
-    if(!file){ showStatus('❌ Sube un archivo CSV.', 'red'); return; }
-    await handleFileUpload(file, name);
-  } else if(method === 'url'){
-    const url = sheetUrlInput.value.trim();
-    if(!url){ showStatus('❌ Escribe la URL del CSV.', 'red'); return; }
-    await handleURLInput(url, name);
-  } else if(method === 'paste'){
-    const data = pasteDataTextarea.value.trim();
-    if(!data){ showStatus('❌ Pega los datos del CSV.', 'red'); return; }
-    handlePasteData(data, name);
+  if(!name){
+    showStatus('❌ Escribe un nombre de actividad.', 'red');
+    return;
   }
+
+  const file = csvFileInput.files[0];
+  if(!file){
+    showStatus('❌ Sube un archivo CSV.', 'red');
+    return;
+  }
+
+  await handleFileUpload(file, name);
 });
 
 // Seleccionar una actividad del filtro
@@ -178,7 +128,7 @@ actividadFilter.addEventListener('change', () => {
   showStatus(`Mostrando ${currentParticipants.length} participantes de "${selected}"`);
 });
 
-// Crear grupo en WhatsApp
+// Crear grupo en WhatsApp (simulado o real)
 createGroupBtn.addEventListener('click', async () => {
   if(!actividadFilter.value){ showStatus('❌ Selecciona una actividad.', 'red'); return; }
   if(currentParticipants.length===0){ showStatus('❌ No hay participantes.', 'red'); return; }
