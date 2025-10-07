@@ -45,18 +45,12 @@ function renderParticipants(){
     const tdTelefono = document.createElement('td'); 
     tdTelefono.textContent = p.telefono;
 
-    const tdWhatsApp = document.createElement('td');
-    const textMsg = `Hola ${p.nombre}, te confirmo para la actividad ${p.actividad}`;
-    tdWhatsApp.innerHTML = `
-      <a class="whatsapp" href="https://wa.me/${encodeURIComponent(normalizarTelefono(p.telefono))}?text=${encodeURIComponent(textMsg)}" target="_blank">
-        <i class="fab fa-whatsapp"></i>
-      </a>
-      <span class="status-icon ${p.status || 'pending'}"></span>
-    `;
+    const tdEstado = document.createElement('td');
+    tdEstado.innerHTML = `<span class="status-icon ${p.status || 'pending'}"></span>`;
 
     tr.appendChild(tdNombre);
     tr.appendChild(tdTelefono);
-    tr.appendChild(tdWhatsApp);
+    tr.appendChild(tdEstado);
     participantsDiv.appendChild(tr);
   });
 }
