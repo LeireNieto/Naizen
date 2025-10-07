@@ -13,16 +13,15 @@
     <h1>Grupos de Actividades</h1>
 
     <!-- FORMULARIO PARA DAR DE ALTA ACTIVIDAD -->
-  <div class="activity-form">
-  <div class="form-row">
-    <label for="activityName">Nombre actividad:</label>
-    <input type="text" id="activityName" placeholder="Ejemplo: Taller de pintura">
-    <input type="file" id="csvFile" accept=".csv">
-  </div>
-  
-  <button id="addActivityBtn">Agregar actividad</button>
-</div>
-
+    <div class="activity-form">
+      <div class="form-row">
+        <label for="activityName">Nombre de la actividad:</label>
+        <input type="text" id="activityName" placeholder="Ejemplo: Taller de pintura">
+        <input type="file" id="csvFile" accept=".csv">
+      </div>
+      <button id="addActivityBtn">Agregar actividad</button>
+    </div>
+    
     <hr>
 
     <!-- FILTRO Y BOTONES -->
@@ -31,6 +30,7 @@
         <option value="">-- Selecciona actividad --</option>
       </select>
       <button id="createGroupBtn">Crear grupo en WhatsApp</button>
+      <p id="groupNameDisplay" style="font-weight:bold; color:green; margin-top:10px;"></p>
       <button id="addParticipantsBtn">Añadir participantes</button>
     </div>
 
@@ -45,8 +45,7 @@
           <th>Estado</th>
         </tr>
       </thead>
-      <tbody>
-      </tbody>
+      <tbody></tbody>
     </table>
   </div>
 

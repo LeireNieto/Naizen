@@ -1,10 +1,6 @@
 /* ------------------ CONFIG ------------------ */
-// API de tu profesor (Beeceptor, usada para pruebas)
 const API_URL = "https://naizenpf5.free.beeceptor.com";
-const TOKEN = "RiNr52I9SoPGV6ccVuF7LqPWx6IuT900"; 
-
-// Número administrador (el que crea el grupo)
-const ADMIN_PHONE = "34685647064";
+const API_KEY = "RiNr52I9SoPGV6ccVuF7LqPWx6IuT900";
 
 /* ------------------ Estado y DOM ------------------ */
 const actividadFilter = document.getElementById('actividadFilter');
@@ -12,12 +8,13 @@ const createGroupBtn = document.getElementById('createGroupBtn');
 const addParticipantsBtn = document.getElementById('addParticipantsBtn');
 const statusDiv = document.getElementById('status');
 const participantsDiv = document.querySelector('#participants tbody');
+const groupNameDisplay = document.getElementById('groupNameDisplay');
 
 const activityNameInput = document.getElementById('activityName');
 const csvFileInput = document.getElementById('csvFile');
 const addActivityBtn = document.getElementById('addActivityBtn');
 
-let activities = {};  // { actividad: [participantes] }
+let activities = {};  
 let currentParticipants = [];
 let groupId = null;
 
@@ -29,7 +26,7 @@ function showStatus(msg, color){
 
 function normalizarTelefono(tel){
   if(!tel) return "";
-  return tel.toString().replace(/\D/g, ""); // elimina símbolos y espacios
+  return tel.toString().replace(/\D/g, "");
 }
 
 /* ------------------ Render ------------------ */
@@ -37,19 +34,11 @@ function renderParticipants(){
   participantsDiv.innerHTML = "";
   currentParticipants.forEach(p => {
     const tr = document.createElement('tr');
-
-    const tdNombre = document.createElement('td'); 
-    tdNombre.textContent = p.nombre;
-
-    const tdTelefono = document.createElement('td'); 
-    tdTelefono.textContent = p.telefono;
-
-    const tdEstado = document.createElement('td');
-    tdEstado.innerHTML = `<span class="status-icon ${p.status || 'pending'}"></span>`;
-
-    tr.appendChild(tdNombre);
-    tr.appendChild(tdTelefono);
-    tr.appendChild(tdEstado);
+    tr.innerHTML = `
+      <td>${p.nombre}</td>
+      <td>${p.telefono}</td>
+      <td><span class="status-icon ${p.status || 'pending'}"></span></td>
+    `;
     participantsDiv.appendChild(tr);
   });
 }
@@ -59,7 +48,6 @@ function parseCSV(text){
   const result = Papa.parse(text.trim(), {
     header: false,
     skipEmptyLines: true,
-    delimiter: "" // autodetecta coma, punto y coma o tab
   });
 
   return result.data.map(row => {
@@ -95,98 +83,7 @@ function updateActivityList(){
   });
 }
 
-/* ------------------ Crear grupo en WhatsApp ------------------ */
-createGroupBtn.addEventListener('click', async () => {
-  if (!actividadFilter.value) {
-    showStatus('❌ Selecciona una actividad.', 'red');
-    return;
-  }
-
-  const nombreActividad = actividadFilter.value;
-
-  // 🕒 Generar automáticamente nombre de grupo con mes y año
-  const fecha = new Date();
-  const opciones = { month: 'short', day: '2-digit' };
-  const fechaFormateada = fecha.toLocaleDateString('es-ES', opciones).replace('.', '');
-  const nombreGrupo = `${nombreActividad} ${fechaFormateada}`;
-
-  showStatus(`📱 Creando grupo "${nombreGrupo}"...`, 'black');
-
-  try {
-    const res = await fetch(`${API_URL}/groups`, {
-      method: "POST",
-      headers: {
-        "accept": "application/json",
-        "authorization": `Bearer ${TOKEN}`,
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
-        participants: [ADMIN_PHONE],
-        subject: nombreGrupo
-      })
-    });
-
-    const data = await res.json();
-    console.log("Respuesta crear grupo:", data);
-
-    if (res.ok) {
-      groupId = data.id || data.groupId || "grupo-simulado";
-      showStatus(`✅ Grupo "${nombreGrupo}" creado correctamente.`, 'green');
-    } else {
-      throw new Error('Error al crear grupo');
-    }
-  } catch (err) {
-    console.error(err);
-    showStatus('❌ Error creando grupo en WhatsApp.', 'red');
-  }
-});
-
-/* ------------------ Añadir participantes al grupo ------------------ */
-addParticipantsBtn.addEventListener('click', async () => {
-  if(!groupId){ 
-    showStatus('❌ Crea primero el grupo.', 'red'); 
-    return; 
-  }
-  if(!currentParticipants.length){
-    showStatus('❌ No hay participantes.', 'red');
-    return;
-  }
-
-  showStatus('👥 Añadiendo participantes al grupo...', 'black');
-
-  try {
-    const telefonos = currentParticipants.map(p => normalizarTelefono(p.telefono));
-    const res = await fetch(`${API_URL}/groups/${encodeURIComponent(groupId)}/participants`, {
-      method: "POST",
-      headers: {
-        "accept": "application/json",
-        "authorization": `Bearer ${TOKEN}`,
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({ participants: telefonos })
-    });
-
-    const data = await res.json();
-    console.log("Respuesta añadir participantes:", data);
-
-    currentParticipants = currentParticipants.map(p => ({
-      ...p,
-      status: res.ok ? 'success' : 'error'
-    }));
-    renderParticipants();
-
-    showStatus(res.ok 
-      ? '✅ Participantes añadidos correctamente.' 
-      : '❌ Error al añadir participantes.', 
-      res.ok ? 'green' : 'red'
-    );
-  } catch(err){
-    console.error(err);
-    showStatus('❌ Error de conexión al añadir participantes.', 'red');
-  }
-});
-
-/* ------------------ Crear actividad desde CSV ------------------ */
+/* ------------------ Eventos ------------------ */
 csvFileInput.style.display = 'block';
 
 addActivityBtn.addEventListener('click', async () => {
@@ -199,15 +96,88 @@ addActivityBtn.addEventListener('click', async () => {
   await handleFileUpload(file, name);
 });
 
-/* ------------------ Seleccionar una actividad ------------------ */
 actividadFilter.addEventListener('change', () => {
   const selected = actividadFilter.value;
-  if(!selected){
-    currentParticipants = [];
-    renderParticipants();
+  currentParticipants = selected ? activities[selected] || [] : [];
+  renderParticipants();
+  showStatus(selected ? `Mostrando ${currentParticipants.length} participantes de "${selected}"` : 'Esperando acción...');
+});
+
+/* ------------------ Crear grupo en WhatsApp ------------------ */
+createGroupBtn.addEventListener('click', async () => {
+  const actividad = actividadFilter.value;
+  if(!actividad){
+    showStatus('❌ Selecciona una actividad.', 'red');
     return;
   }
-  currentParticipants = activities[selected] || [];
-  renderParticipants();
-  showStatus(`Mostrando ${currentParticipants.length} participantes de "${selected}"`);
+
+  showStatus('Creando grupo...', 'black');
+  groupNameDisplay.textContent = "";
+
+  try {
+    const res = await fetch(`${API_URL}/groups`, {
+      method: "POST",
+      headers: {
+        "accept": "application/json",
+        "authorization": `Bearer ${API_KEY}`,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        participants: ["34685647064"], // teléfono del administrador
+        subject: actividad
+      })
+    });
+
+    const data = await res.json();
+    groupId = data.id || data.groupId || 'grupo-simulado';
+
+    if (res.ok) {
+      showStatus(`✅ Grupo "${actividad}" creado correctamente.`, 'green');
+      groupNameDisplay.textContent = `Grupo creado: "${actividad}"`;
+    } else {
+      showStatus('❌ Error al crear el grupo.', 'red');
+    }
+  } catch(err){
+    console.error(err);
+    showStatus('❌ Error en la conexión con la API.', 'red');
+  }
+});
+
+/* ------------------ Añadir participantes ------------------ */
+addParticipantsBtn.addEventListener('click', async () => {
+  if(!groupId){
+    showStatus('❌ Crea primero el grupo.', 'red');
+    return;
+  }
+  if(currentParticipants.length === 0){
+    showStatus('❌ No hay participantes.', 'red');
+    return;
+  }
+
+  showStatus('Añadiendo participantes...', 'black');
+
+  try {
+    const telefonos = currentParticipants.map(p => normalizarTelefono(p.telefono));
+    const res = await fetch(`${API_URL}/groups/${encodeURIComponent(groupId)}/participants`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ participants: telefonos })
+    });
+
+    if (res.ok) {
+      currentParticipants = currentParticipants.map(p => ({ ...p, status: 'success' }));
+      renderParticipants();
+      showStatus('✅ Participantes añadidos correctamente.', 'green');
+    } else {
+      throw new Error("Error al añadir participantes");
+    }
+  } catch (err) {
+    console.error(err);
+    currentParticipants = currentParticipants.map(p => ({ ...p, status: 'error' }));
+    renderParticipants();
+    showStatus('❌ Error al añadir participantes.', 'red');
+  }
 });
