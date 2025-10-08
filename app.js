@@ -1,5 +1,5 @@
 /* ------------------ CONFIG ------------------ */
-const API_URL = "https://naizenpf5.free.beeceptor.com"; // o el real luego
+const API_URL = "https://naizenpf5.free.beeceptor.com"; // API simulada o real
 const API_KEY = "RiNr52I9SoPGV6ccVuF7LqPWx6IuT900";
 
 /* ------------------ Estado y DOM ------------------ */
@@ -13,9 +13,9 @@ const activityNameInput = document.getElementById('activityName');
 const csvFileInput = document.getElementById('csvFile');
 const addActivityBtn = document.getElementById('addActivityBtn');
 
-let activities = {};
+let activities = {};        // { actividad: [participantes] }
 let currentParticipants = [];
-let groupId = null;
+let groupId = null;          // se asigna al crear el grupo
 
 /* ------------------ Helpers ------------------ */
 function showStatus(msg, color) {
@@ -25,7 +25,7 @@ function showStatus(msg, color) {
 
 function normalizarTelefono(tel) {
   if (!tel) return "";
-  return tel.toString().replace(/\D/g, "");
+  return tel.toString().replace(/\D/g, ""); // sin símbolos ni espacios
 }
 
 /* ------------------ Render ------------------ */
@@ -46,14 +46,14 @@ function renderParticipants() {
 function parseCSV(text) {
   const result = Papa.parse(text.trim(), {
     header: false,
-    skipEmptyLines: true,
+    skipEmptyLines: true
   });
 
   return result.data.map(row => {
     if (row.length < 3) return null;
     const nombre = (row[1] || '').trim();
     const telefono = normalizarTelefono(row[2] || '');
-    return (nombre && telefono) ? { nombre, telefono, actividad: '', status: 'pending' } : null;
+    return (nombre && telefono) ? { nombre, telefono, actividad:'', status:'pending' } : null;
   }).filter(Boolean);
 }
 
@@ -84,8 +84,7 @@ function updateActivityList() {
 
 /* ------------------ Crear grupo ------------------ */
 createGroupBtn.addEventListener('click', async () => {
-  const actividad = actividadFilter.value;
-  if (!actividad) {
+  if (!actividadFilter.value) {
     showStatus('❌ Selecciona una actividad.', 'red');
     return;
   }
@@ -97,57 +96,77 @@ createGroupBtn.addEventListener('click', async () => {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${API_KEY}`,
-        "Content-Type": "application/json",
-        "Accept": "application/json"
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        participants: ["34685647064"], // el admin (Naizen)
-        subject: actividad
+        participants: ["34685647064"], // admin de Naizen
+        subject: actividadFilter.value
       })
     });
 
     let data;
-    try {
-      data = await res.json();
-    } catch {
-      data = null; // si la API simulada no devuelve JSON
-    }
+    try { data = await res.json(); } catch { data = null; }
+
+    console.log("📦 Respuesta de la API (crear grupo):", data || "(sin datos)");
 
     if (res.ok) {
-      groupId = data?.id || "grupo-simulado";
-      showStatus(`✅ Grupo creado: ${actividad}`, 'green');
+      groupId = data?.id || "120363421853568064@g.us"; // puedes usar el ID simulado
+      showStatus(`✅ Grupo creado: ${actividadFilter.value}`, 'green');
     } else {
-      showStatus('❌ Error al crear el grupo.', 'red');
+      showStatus('❌ Error al crear grupo.', 'red');
     }
 
-    console.log("📦 Respuesta de la API:", data || "(sin datos)");
-
   } catch (err) {
-    console.error("🚨 Error al crear grupo:", err);
-    showStatus('❌ Error en la conexión.', 'red');
+    console.error(err);
+    showStatus('❌ Error de conexión al crear grupo.', 'red');
   }
 });
 
-/* ------------------ Añadir participantes (enviar mensajes) ------------------ */
+/* ------------------ Añadir participantes ------------------ */
 addParticipantsBtn.addEventListener('click', async () => {
   if (!groupId) {
     showStatus('❌ Crea primero el grupo.', 'red');
     return;
   }
-  if (!currentParticipants.length) {
+  if (currentParticipants.length === 0) {
     showStatus('❌ No hay participantes.', 'red');
     return;
   }
 
   showStatus('📤 Añadiendo participantes...', 'black');
 
-  for (let p of currentParticipants) {
-    // aquí solo simulamos el envío
-    p.status = 'success';
-    renderParticipants();
-  }
+  const telefonos = currentParticipants.map(p => normalizarTelefono(p.telefono));
 
-  showStatus('✅ Participantes añadidos (simulado).', 'green');
+  try {
+    const res = await fetch(`${API_URL}/groups/${encodeURIComponent(groupId)}/participants`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${API_KEY}`,
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify({ participants: telefonos })
+    });
+
+    let data;
+    try { data = await res.json(); } catch { data = null; }
+
+    console.log("📦 Respuesta de la API (añadir participantes):", data || "(sin datos)");
+
+    if (res.ok) {
+      currentParticipants = currentParticipants.map(p => ({ ...p, status: 'success' }));
+      renderParticipants();
+      showStatus('✅ Participantes añadidos correctamente.', 'green');
+    } else {
+      currentParticipants = currentParticipants.map(p => ({ ...p, status: 'error' }));
+      renderParticipants();
+      showStatus('❌ Error al añadir participantes.', 'red');
+    }
+
+  } catch (err) {
+    console.error(err);
+    showStatus('❌ Error de conexión al añadir participantes.', 'red');
+  }
 });
 
 /* ------------------ Crear actividad ------------------ */
