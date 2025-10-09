@@ -153,15 +153,25 @@ addParticipantsBtn.addEventListener('click', async () => {
 
     console.log("📦 Respuesta de la API (añadir participantes):", data || "(sin datos)");
 
-    if (res.ok) {
-      currentParticipants = currentParticipants.map(p => ({ ...p, status: 'success' }));
-      renderParticipants();
-      showStatus('✅ Participantes añadidos correctamente.', 'green');
-    } else {
-      currentParticipants = currentParticipants.map(p => ({ ...p, status: 'error' }));
-      renderParticipants();
-      showStatus('❌ Error al añadir participantes.', 'red');
-    }
+  if (res.ok && data) {
+  const procesados = data.processed || [];
+  const fallidos = data.failed || [];
+
+  currentParticipants = currentParticipants.map(p => {
+    const telefono = normalizarTelefono(p.telefono);
+    if (procesados.includes(telefono)) return { ...p, status: 'success' };
+    if (fallidos.includes(telefono)) return { ...p, status: 'error' };
+    return { ...p, status: 'pending' };
+  });
+
+  renderParticipants();
+  showStatus('✅ Participantes añadidos (según respuesta).', 'green');
+} else {
+  currentParticipants = currentParticipants.map(p => ({ ...p, status: 'error' }));
+  renderParticipants();
+  showStatus('❌ Error al añadir participantes.', 'red');
+}
+
 
   } catch (err) {
     console.error(err);
