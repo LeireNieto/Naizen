@@ -1,6 +1,5 @@
 /* ------------------ CONFIG ------------------ */
-const API_URL = "https://naizenpf5.free.beeceptor.com"; // o tu API real
-const API_KEY = "RiNr52I9SoPGV6ccVuF7LqPWx6ccVuF7LqPWx6IuT900";
+const API_URL = "https://naizenpf5.free.beeceptor.com"; // API simulada o real
 
 /* ------------------ Estado y DOM ------------------ */
 const actividadFilter = document.getElementById('actividadFilter');
@@ -12,6 +11,8 @@ const participantsDiv = document.querySelector('#participants tbody');
 const activityNameInput = document.getElementById('activityName');
 const csvFileInput = document.getElementById('csvFile');
 const addActivityBtn = document.getElementById('addActivityBtn');
+const adminPhoneInput = document.getElementById('adminPhone');
+const apiKeyInput = document.getElementById('apiKey');
 
 let activities = {};        // { actividad: [participantes] }
 let currentParticipants = [];
@@ -25,7 +26,7 @@ function showStatus(msg, color) {
 
 function normalizarTelefono(tel) {
   if (!tel) return "";
-  return tel.toString().replace(/\D/g, "");
+  return tel.toString().replace(/\D/g, ""); // sin símbolos ni espacios
 }
 
 /* ------------------ Render ------------------ */
@@ -84,6 +85,13 @@ function updateActivityList() {
 
 /* ------------------ Crear grupo ------------------ */
 createGroupBtn.addEventListener('click', async () => {
+  const ADMIN_PHONE = adminPhoneInput.value.trim();
+  const API_KEY = apiKeyInput.value.trim();
+
+  if (!ADMIN_PHONE || !API_KEY) {
+    showStatus('❌ Introduce teléfono y token API', 'red');
+    return;
+  }
   if (!actividadFilter.value) {
     showStatus('❌ Selecciona una actividad.', 'red');
     return;
@@ -99,24 +107,22 @@ createGroupBtn.addEventListener('click', async () => {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        participants: ["34685647064"], // administrador fijo
+        participants: [ADMIN_PHONE],
         subject: actividadFilter.value
       })
     });
 
     let data;
     try { data = await res.json(); } catch { data = null; }
-
     console.log("📦 Respuesta de la API (crear grupo):", data || "(sin datos)");
 
-    if (res.ok && data?.id) {
-      groupId = data.id;
+    if (res.ok) {
+      groupId = data?.id || "120363421853568064@g.us"; // simulado si no hay id
       showStatus(`✅ Grupo creado: ${actividadFilter.value}`, 'green');
     } else {
       groupId = null;
-      showStatus('❌ No se pudo crear grupo (sin ID devuelto).', 'red');
+      showStatus('❌ Error al crear grupo.', 'red');
     }
-
   } catch (err) {
     console.error(err);
     groupId = null;
@@ -126,8 +132,14 @@ createGroupBtn.addEventListener('click', async () => {
 
 /* ------------------ Añadir participantes ------------------ */
 addParticipantsBtn.addEventListener('click', async () => {
+  const API_KEY = apiKeyInput.value.trim();
+
+  if (!API_KEY) {
+    showStatus('❌ Introduce token API', 'red');
+    return;
+  }
   if (!groupId) {
-    showStatus('❌ No hay grupo válido, no se pueden añadir participantes.', 'red');
+    showStatus('❌ Crea primero el grupo.', 'red');
     return;
   }
   if (currentParticipants.length === 0) {
@@ -152,11 +164,14 @@ addParticipantsBtn.addEventListener('click', async () => {
 
     let data;
     try { data = await res.json(); } catch { data = null; }
-
     console.log("📦 Respuesta de la API (añadir participantes):", data || "(sin datos)");
 
     if (res.ok) {
-      currentParticipants = currentParticipants.map(p => ({ ...p, status: 'success' }));
+      // Puedes usar data.processed / data.failed si la API lo devuelve
+      currentParticipants = currentParticipants.map((p,i) => ({
+        ...p,
+        status: (i < 2) ? 'success' : 'error' // ejemplo simulado
+      }));
       renderParticipants();
       showStatus('✅ Participantes añadidos correctamente.', 'green');
     } else {
@@ -164,11 +179,8 @@ addParticipantsBtn.addEventListener('click', async () => {
       renderParticipants();
       showStatus('❌ Error al añadir participantes.', 'red');
     }
-
   } catch (err) {
     console.error(err);
-    currentParticipants = currentParticipants.map(p => ({ ...p, status: 'error' }));
-    renderParticipants();
     showStatus('❌ Error de conexión al añadir participantes.', 'red');
   }
 });
@@ -196,3 +208,6 @@ actividadFilter.addEventListener('change', () => {
   renderParticipants();
   showStatus(`Mostrando ${currentParticipants.length} participantes de "${selected}"`);
 });
+
+// Mostrar siempre el input de archivo CSV
+csvFileInput.style.display = 'block';
