@@ -1,4 +1,4 @@
-/* ------------------ CONFIG ------------------ */
+// Configuración simplificada sin dotenv por ahora
 const API_URL = "https://naizenpf5.free.beeceptor.com"; // API simulada o real
 const API_KEY = "RiNr52I9SoPGV6ccVuF7LqPWx6IuT900";
 
