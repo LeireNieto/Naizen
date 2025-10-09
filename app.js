@@ -1,6 +1,6 @@
 /* ------------------ CONFIG ------------------ */
-const API_URL = "https://naizenpf5.free.beeceptor.com"; // API simulada o real
-const API_KEY = "RiNr52I9SoPGV6ccVuF7LqPWx6IuT900";
+const API_URL = "https://naizenpf5.free.beeceptor.com"; // o tu API real
+const API_KEY = "RiNr52I9SoPGV6ccVuF7LqPWx6ccVuF7LqPWx6IuT900";
 
 /* ------------------ Estado y DOM ------------------ */
 const actividadFilter = document.getElementById('actividadFilter');
@@ -25,7 +25,7 @@ function showStatus(msg, color) {
 
 function normalizarTelefono(tel) {
   if (!tel) return "";
-  return tel.toString().replace(/\D/g, ""); // sin símbolos ni espacios
+  return tel.toString().replace(/\D/g, "");
 }
 
 /* ------------------ Render ------------------ */
@@ -99,7 +99,7 @@ createGroupBtn.addEventListener('click', async () => {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        participants: ["34685647064"], // admin de Naizen
+        participants: ["34685647064"], // administrador fijo
         subject: actividadFilter.value
       })
     });
@@ -109,15 +109,17 @@ createGroupBtn.addEventListener('click', async () => {
 
     console.log("📦 Respuesta de la API (crear grupo):", data || "(sin datos)");
 
-    if (res.ok) {
-      groupId = data?.id || "120363421853568064@g.us"; // puedes usar el ID simulado
+    if (res.ok && data?.id) {
+      groupId = data.id;
       showStatus(`✅ Grupo creado: ${actividadFilter.value}`, 'green');
     } else {
-      showStatus('❌ Error al crear grupo.', 'red');
+      groupId = null;
+      showStatus('❌ No se pudo crear grupo (sin ID devuelto).', 'red');
     }
 
   } catch (err) {
     console.error(err);
+    groupId = null;
     showStatus('❌ Error de conexión al crear grupo.', 'red');
   }
 });
@@ -125,7 +127,7 @@ createGroupBtn.addEventListener('click', async () => {
 /* ------------------ Añadir participantes ------------------ */
 addParticipantsBtn.addEventListener('click', async () => {
   if (!groupId) {
-    showStatus('❌ Crea primero el grupo.', 'red');
+    showStatus('❌ No hay grupo válido, no se pueden añadir participantes.', 'red');
     return;
   }
   if (currentParticipants.length === 0) {
@@ -153,28 +155,20 @@ addParticipantsBtn.addEventListener('click', async () => {
 
     console.log("📦 Respuesta de la API (añadir participantes):", data || "(sin datos)");
 
-  if (res.ok && data) {
-  const procesados = data.processed || [];
-  const fallidos = data.failed || [];
-
-  currentParticipants = currentParticipants.map(p => {
-    const telefono = normalizarTelefono(p.telefono);
-    if (procesados.includes(telefono)) return { ...p, status: 'success' };
-    if (fallidos.includes(telefono)) return { ...p, status: 'error' };
-    return { ...p, status: 'pending' };
-  });
-
-  renderParticipants();
-  showStatus('✅ Participantes añadidos (según respuesta).', 'green');
-} else {
-  currentParticipants = currentParticipants.map(p => ({ ...p, status: 'error' }));
-  renderParticipants();
-  showStatus('❌ Error al añadir participantes.', 'red');
-}
-
+    if (res.ok) {
+      currentParticipants = currentParticipants.map(p => ({ ...p, status: 'success' }));
+      renderParticipants();
+      showStatus('✅ Participantes añadidos correctamente.', 'green');
+    } else {
+      currentParticipants = currentParticipants.map(p => ({ ...p, status: 'error' }));
+      renderParticipants();
+      showStatus('❌ Error al añadir participantes.', 'red');
+    }
 
   } catch (err) {
     console.error(err);
+    currentParticipants = currentParticipants.map(p => ({ ...p, status: 'error' }));
+    renderParticipants();
     showStatus('❌ Error de conexión al añadir participantes.', 'red');
   }
 });
