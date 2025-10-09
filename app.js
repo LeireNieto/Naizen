@@ -1,5 +1,6 @@
 /* ------------------ CONFIG ------------------ */
 const API_URL = "https://naizenpf5.free.beeceptor.com"; // API simulada o real
+const API_KEY = "RiNr52I9SoPGV6ccVuF7LqPWx6IuT900";
 
 /* ------------------ Estado y DOM ------------------ */
 const actividadFilter = document.getElementById('actividadFilter');
@@ -11,8 +12,6 @@ const participantsDiv = document.querySelector('#participants tbody');
 const activityNameInput = document.getElementById('activityName');
 const csvFileInput = document.getElementById('csvFile');
 const addActivityBtn = document.getElementById('addActivityBtn');
-const adminPhoneInput = document.getElementById('adminPhone');
-const apiKeyInput = document.getElementById('apiKey');
 
 let activities = {};        // { actividad: [participantes] }
 let currentParticipants = [];
@@ -26,7 +25,12 @@ function showStatus(msg, color) {
 
 function normalizarTelefono(tel) {
   if (!tel) return "";
-  return tel.toString().replace(/\D/g, ""); // sin símbolos ni espacios
+  let numero = tel.toString().replace(/\D/g, ""); // quitar símbolos y espacios
+  // si no empieza con 34, lo añadimos automáticamente
+  if (!numero.startsWith("34")) {
+    numero = "34" + numero;
+  }
+  return numero;
 }
 
 /* ------------------ Render ------------------ */
@@ -50,7 +54,8 @@ function parseCSV(text) {
     skipEmptyLines: true
   });
 
-  return result.data.map(row => {
+// saltamos la primera fila si contiene texto tipo "Nombre" o "Teléfono"
+return result.data.slice(1).map(row => {
     if (row.length < 3) return null;
     const nombre = (row[1] || '').trim();
     const telefono = normalizarTelefono(row[2] || '');
@@ -85,13 +90,6 @@ function updateActivityList() {
 
 /* ------------------ Crear grupo ------------------ */
 createGroupBtn.addEventListener('click', async () => {
-  const ADMIN_PHONE = adminPhoneInput.value.trim();
-  const API_KEY = apiKeyInput.value.trim();
-
-  if (!ADMIN_PHONE || !API_KEY) {
-    showStatus('❌ Introduce teléfono y token API', 'red');
-    return;
-  }
   if (!actividadFilter.value) {
     showStatus('❌ Selecciona una actividad.', 'red');
     return;
@@ -107,37 +105,33 @@ createGroupBtn.addEventListener('click', async () => {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        participants: [ADMIN_PHONE],
+        participants: ["34685647064"], // admin de Naizen
         subject: actividadFilter.value
       })
     });
 
     let data;
     try { data = await res.json(); } catch { data = null; }
+
     console.log("📦 Respuesta de la API (crear grupo):", data || "(sin datos)");
 
-    if (res.ok) {
-      groupId = data?.id || "120363421853568064@g.us"; // simulado si no hay id
+    if (res.ok && data?.id) {
+      groupId = data.id;
       showStatus(`✅ Grupo creado: ${actividadFilter.value}`, 'green');
     } else {
       groupId = null;
       showStatus('❌ Error al crear grupo.', 'red');
+      console.warn("⚠️ No se recibió ID de grupo, valor actual:", groupId);
     }
+
   } catch (err) {
     console.error(err);
-    groupId = null;
     showStatus('❌ Error de conexión al crear grupo.', 'red');
   }
 });
 
 /* ------------------ Añadir participantes ------------------ */
 addParticipantsBtn.addEventListener('click', async () => {
-  const API_KEY = apiKeyInput.value.trim();
-
-  if (!API_KEY) {
-    showStatus('❌ Introduce token API', 'red');
-    return;
-  }
   if (!groupId) {
     showStatus('❌ Crea primero el grupo.', 'red');
     return;
@@ -164,13 +158,13 @@ addParticipantsBtn.addEventListener('click', async () => {
 
     let data;
     try { data = await res.json(); } catch { data = null; }
+
     console.log("📦 Respuesta de la API (añadir participantes):", data || "(sin datos)");
 
-    if (res.ok) {
-      // Puedes usar data.processed / data.failed si la API lo devuelve
-      currentParticipants = currentParticipants.map((p,i) => ({
+    if (res.ok && data?.processed) {
+      currentParticipants = currentParticipants.map((p, i) => ({
         ...p,
-        status: (i < 2) ? 'success' : 'error' // ejemplo simulado
+        status: data.failed?.some(f => f === p.telefono) ? 'error' : 'success'
       }));
       renderParticipants();
       showStatus('✅ Participantes añadidos correctamente.', 'green');
@@ -179,6 +173,7 @@ addParticipantsBtn.addEventListener('click', async () => {
       renderParticipants();
       showStatus('❌ Error al añadir participantes.', 'red');
     }
+
   } catch (err) {
     console.error(err);
     showStatus('❌ Error de conexión al añadir participantes.', 'red');
@@ -208,6 +203,3 @@ actividadFilter.addEventListener('change', () => {
   renderParticipants();
   showStatus(`Mostrando ${currentParticipants.length} participantes de "${selected}"`);
 });
-
-// Mostrar siempre el input de archivo CSV
-csvFileInput.style.display = 'block';
