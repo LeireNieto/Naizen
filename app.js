@@ -1,6 +1,11 @@
-// Configuración simplificada sin dotenv por ahora
-const API_URL = "https://naizenpf5.free.beeceptor.com"; // API simulada o real
-const API_KEY = "RiNr52I9SoPGV6ccVuF7LqPWx6IuT900";
+// Configuración desde archivo .env
+const API_URL = process?.env?.API_URL || "https://naizenpf5.free.beeceptor.com";
+const API_KEY = process?.env?.API_KEY || "RiNr52I9SoPGV6ccVuF7LqPWx6IuT900";
+
+// Validación de configuración
+if (!API_KEY || API_KEY === "RiNr52I9SoPGV6ccVuF7LqPWx6IuT900") {
+  console.warn('⚠️ Usando configuración por defecto. Crea un archivo .env para mayor seguridad');
+}
 
 /* ------------------ Estado y DOM ------------------ */
 const actividadFilter = document.getElementById('actividadFilter');
