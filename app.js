@@ -18,9 +18,6 @@ let activities = {};
 let currentParticipants = [];
 let groupId = null;
 
-/* ------------------ Ocultar botón al iniciar ------------------ */
-addParticipantsBtn.style.display = "none"; // 👈 ocultamos al cargar
-
 /* ------------------ Helpers ------------------ */
 function showStatus(msg, color) {
   statusDiv.textContent = msg;
@@ -61,7 +58,7 @@ function parseCSV(text) {
 
   return result.data.slice(1).map(row => {
     if (row.length < 3) return null;
-    const nombre = (row[1] || '').trim().replace(/,/g, '');
+    const nombre = (row[1] || '').trim().replace(/,/g, ''); // elimina comas
     let telefono = normalizarTelefono(row[2] || '');
     const valido = esTelefonoValido(telefono);
 
@@ -83,7 +80,14 @@ async function handleFileUpload(file, activityName) {
   activities[activityName] = participants;
   updateActivityList();
   showStatus(`✅ Actividad "${activityName}" creada con ${participants.length} participantes.`, 'green');
+
+  // Mostrar la parte inferior
   mainSection.classList.remove('hidden');
+
+  // Actualizar colores de botones
+  addActivityBtn.classList.remove('btn-active');
+  addActivityBtn.classList.add('btn-done');
+  actividadFilter.classList.add('btn-active'); // siguiente paso
 }
 
 /* ------------------ Actualizar lista ------------------ */
@@ -125,7 +129,12 @@ createGroupBtn.addEventListener('click', async () => {
     if (res.ok && data?.id) {
       groupId = data.id;
       showStatus(`✅ Grupo creado: ${actividadFilter.value}`, 'green');
-      addParticipantsBtn.style.display = "inline-block"; // 👈 mostrar botón al crear grupo
+
+      // actualizar botones
+      createGroupBtn.classList.remove('btn-active');
+      createGroupBtn.classList.add('btn-done');
+      addParticipantsBtn.classList.add('btn-active'); // siguiente paso
+
     } else {
       groupId = null;
       showStatus('❌ Error al crear grupo.', 'red');
@@ -177,6 +186,11 @@ addParticipantsBtn.addEventListener('click', async () => {
       });
       renderParticipants();
       showStatus('✅ Participantes añadidos correctamente.', 'green');
+
+      // actualizar botón
+      addParticipantsBtn.classList.remove('btn-active');
+      addParticipantsBtn.classList.add('btn-done');
+
     } else {
       currentParticipants = currentParticipants.map(p => ({ ...p, status: 'error' }));
       renderParticipants();
@@ -211,4 +225,9 @@ actividadFilter.addEventListener('change', () => {
   currentParticipants = activities[selected] || [];
   renderParticipants();
   showStatus(`Mostrando ${currentParticipants.length} participantes de "${selected}"`);
+
+  // actualizar botón de seleccionar actividad
+  actividadFilter.classList.remove('btn-active');
+  actividadFilter.classList.add('btn-done');
+  createGroupBtn.classList.add('btn-active'); // siguiente paso
 });
