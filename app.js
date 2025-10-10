@@ -1,10 +1,12 @@
-// Configuración desde archivo .env
-const API_URL = process?.env?.API_URL || "https://naizenpf5.free.beeceptor.com";
-const API_KEY = process?.env?.API_KEY || "RiNr52I9SoPGV6ccVuF7LqPWx6IuT900";
+// Configuración desde archivo .env (SIN VALORES POR DEFECTO)
+const API_URL = process?.env?.API_URL;
+const API_KEY = process?.env?.API_KEY;
 
-// Validación de configuración
-if (!API_KEY || API_KEY === "RiNr52I9SoPGV6ccVuF7LqPWx6IuT900") {
-  console.warn('⚠️ Usando configuración por defecto. Crea un archivo .env para mayor seguridad');
+// Validación estricta de configuración
+if (!API_URL || !API_KEY) {
+  console.error('❌ ERROR: Variables de entorno no encontradas');
+  console.error('Verifica que tu archivo .env existe y tiene las variables API_URL y API_KEY');
+  throw new Error('Configuración requerida no encontrada en .env');
 }
 
 /* ------------------ Estado y DOM ------------------ */
