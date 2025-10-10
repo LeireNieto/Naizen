@@ -23,14 +23,22 @@ function showStatus(msg, color) {
   statusDiv.style.color = color || 'black';
 }
 
+// Normaliza los números (quita espacios, añade 34 si falta)
 function normalizarTelefono(tel) {
   if (!tel) return "";
   let numero = tel.toString().replace(/\D/g, ""); // quitar símbolos y espacios
-  // si no empieza con 34, lo añadimos automáticamente
-  if (!numero.startsWith("34")) {
+
+  // Si empieza por 6 o 7 y tiene 9 dígitos → añadimos prefijo 34
+  if (/^[67]\d{8}$/.test(numero)) {
     numero = "34" + numero;
   }
+
   return numero;
+}
+
+// Valida si el teléfono tiene formato correcto
+function esTelefonoValido(tel) {
+  return (/^[67]\d{8}$/).test(tel) || (/^34[67]\d{8}$/).test(tel);
 }
 
 /* ------------------ Render ------------------ */
@@ -54,12 +62,17 @@ function parseCSV(text) {
     skipEmptyLines: true
   });
 
-// saltamos la primera fila si contiene texto tipo "Nombre" o "Teléfono"
-return result.data.slice(1).map(row => {
+  // saltamos la primera fila si contiene texto tipo "Nombre" o "Teléfono"
+  return result.data.slice(1).map(row => {
     if (row.length < 3) return null;
+
     const nombre = (row[1] || '').trim();
-    const telefono = normalizarTelefono(row[2] || '');
-    return (nombre && telefono) ? { nombre, telefono, actividad:'', status:'pending' } : null;
+    let telefono = normalizarTelefono(row[2] || '');
+    const valido = esTelefonoValido(telefono);
+
+    return (nombre && telefono)
+      ? { nombre, telefono, actividad: '', status: valido ? 'pending' : 'error' }
+      : null;
   }).filter(Boolean);
 }
 
@@ -143,7 +156,10 @@ addParticipantsBtn.addEventListener('click', async () => {
 
   showStatus('📤 Añadiendo participantes...', 'black');
 
-  const telefonos = currentParticipants.map(p => normalizarTelefono(p.telefono));
+  // Filtramos solo los teléfonos válidos
+  const telefonos = currentParticipants
+    .filter(p => esTelefonoValido(p.telefono))
+    .map(p => normalizarTelefono(p.telefono));
 
   try {
     const res = await fetch(`${API_URL}/groups/${encodeURIComponent(groupId)}/participants`, {
@@ -162,10 +178,12 @@ addParticipantsBtn.addEventListener('click', async () => {
     console.log("📦 Respuesta de la API (añadir participantes):", data || "(sin datos)");
 
     if (res.ok && data?.processed) {
-      currentParticipants = currentParticipants.map((p, i) => ({
-        ...p,
-        status: data.failed?.some(f => f === p.telefono) ? 'error' : 'success'
-      }));
+      currentParticipants = currentParticipants.map(p => {
+        if (!esTelefonoValido(p.telefono)) return { ...p, status: 'error' };
+        return data.failed?.includes(p.telefono)
+          ? { ...p, status: 'error' }
+          : { ...p, status: 'success' };
+      });
       renderParticipants();
       showStatus('✅ Participantes añadidos correctamente.', 'green');
     } else {
