@@ -27,7 +27,7 @@ body {
 
 h1 {
   margin-bottom: 30px;
-  font-size: 23;
+  font-size: 23px;
   color: #10900a;
 }
 
@@ -39,8 +39,8 @@ h1 {
 .activity-form .form-row {
   display: flex;
   align-items: center;
-  gap: 10px;       /* espacio entre label, input y botón */
-  margin-bottom: 20px; /* espacio entre fila y botón */
+  gap: 10px;
+  margin-bottom: 20px;
 }
 
 .activity-form .form-row label {
@@ -58,22 +58,16 @@ h1 {
 }
 
 .activity-form .form-row input[type="file"] {
-  flex: 0;        /* tamaño natural del botón */
+  flex: 0;
 }
 
 .activity-form #addActivityBtn {
   padding: 10px 20px;
   font-size: 14px;
-  border: none;
   border-radius: 5px;
-  background-color: #4CAF50;
-  color: white;
+  border: none;
   cursor: pointer;
   transition: background-color 0.3s;
-}
-
-.activity-form #addActivityBtn:hover {
-  background-color: #45a049;
 }
 
 /* -------------------- Controles -------------------- */
@@ -90,6 +84,24 @@ h1 {
   font-size: 14px;
   border-radius: 5px;
   border: 1px solid #8ee382;
+}
+
+/* -------------------- Botones: estados -------------------- */
+.btn-active {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+}
+
+.btn-active:hover {
+  background-color: #45a049;
+}
+
+.btn-done {
+  background-color: #ccc;
+  color: #333;
+  border: none;
+  cursor: default;
 }
 
 /* -------------------- Estado -------------------- */
@@ -141,4 +153,9 @@ th {
   .activity-form .form-row input[type="file"] {
     margin-top: 10px;
   }
+}
+
+/* -------------------- Ocultar secciones -------------------- */
+.hidden {
+  display: none !important;
 }

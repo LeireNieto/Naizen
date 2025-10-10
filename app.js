@@ -1,12 +1,47 @@
-// Configuración desde archivo .env (SIN VALORES POR DEFECTO)
-const API_URL = process?.env?.API_URL;
-const API_KEY = process?.env?.API_KEY;
+/* ------------------ CONFIG SEGURA ------------------ */
+// Variables de configuración - se cargan desde la interfaz del usuario
+let API_URL = "";
+let API_KEY = "";
 
-// Validación estricta de configuración
-if (!API_URL || !API_KEY) {
-  console.error('❌ ERROR: Variables de entorno no encontradas');
-  console.error('Verifica que tu archivo .env existe y tiene las variables API_URL y API_KEY');
-  throw new Error('Configuración requerida no encontrada en .env');
+// Función para inicializar configuración
+function loadConfig() {
+  const savedApiUrl = localStorage.getItem('naizen_api_url');
+  const savedApiKey = localStorage.getItem('naizen_api_key');
+  
+  if (savedApiUrl && savedApiKey) {
+    API_URL = savedApiUrl;
+    API_KEY = savedApiKey;
+    if (document.getElementById('apiUrl')) {
+      document.getElementById('apiUrl').value = API_URL;
+      document.getElementById('apiKey').value = '••••••••••••••••'; // Ocultar con puntos
+    }
+    showStatus('✅ Configuración cargada desde el almacenamiento local', 'green');
+  } else {
+    showStatus('⚠️ Configura tu API URL y Token para comenzar', 'orange');
+  }
+}
+
+// Función para guardar configuración
+function saveConfig() {
+  const apiUrl = document.getElementById('apiUrl').value.trim();
+  const apiKey = document.getElementById('apiKey').value.trim();
+  
+  if (!apiUrl || !apiKey || apiKey === '••••••••••••••••') {
+    showStatus('❌ Ingresa URL y Token válidos', 'red');
+    return false;
+  }
+  
+  API_URL = apiUrl;
+  API_KEY = apiKey;
+  
+  localStorage.setItem('naizen_api_url', API_URL);
+  localStorage.setItem('naizen_api_key', API_KEY);
+  
+  // Ocultar el token en la interfaz
+  document.getElementById('apiKey').value = '••••••••••••••••';
+  
+  showStatus('✅ Configuración guardada de forma segura', 'green');
+  return true;
 }
 
 /* ------------------ Estado y DOM ------------------ */
@@ -15,14 +50,15 @@ const addParticipantsBtn = document.getElementById('addParticipantsBtn');
 const createGroupBtn = document.getElementById('createGroupBtn');
 const statusDiv = document.getElementById('status');
 const participantsDiv = document.querySelector('#participants tbody');
+const mainSection = document.getElementById('mainSection');
 
 const activityNameInput = document.getElementById('activityName');
 const csvFileInput = document.getElementById('csvFile');
 const addActivityBtn = document.getElementById('addActivityBtn');
 
-let activities = {};        // { actividad: [participantes] }
+let activities = {};
 let currentParticipants = [];
-let groupId = null;          // se asigna al crear el grupo
+let groupId = null;
 
 /* ------------------ Helpers ------------------ */
 function showStatus(msg, color) {
@@ -32,12 +68,13 @@ function showStatus(msg, color) {
 
 function normalizarTelefono(tel) {
   if (!tel) return "";
-  let numero = tel.toString().replace(/\D/g, ""); // quitar símbolos y espacios
-  // si no empieza con 34, lo añadimos automáticamente
-  if (!numero.startsWith("34")) {
-    numero = "34" + numero;
-  }
+  let numero = tel.toString().replace(/\D/g, "");
+  if (/^[67]\d{8}$/.test(numero)) numero = "34" + numero;
   return numero;
+}
+
+function esTelefonoValido(tel) {
+  return (/^[67]\d{8}$/).test(tel) || (/^34[67]\d{8}$/).test(tel);
 }
 
 /* ------------------ Render ------------------ */
@@ -61,12 +98,15 @@ function parseCSV(text) {
     skipEmptyLines: true
   });
 
-// saltamos la primera fila si contiene texto tipo "Nombre" o "Teléfono"
-return result.data.slice(1).map(row => {
+  return result.data.slice(1).map(row => {
     if (row.length < 3) return null;
-    const nombre = (row[1] || '').trim();
-    const telefono = normalizarTelefono(row[2] || '');
-    return (nombre && telefono) ? { nombre, telefono, actividad:'', status:'pending' } : null;
+    const nombre = (row[1] || '').trim().replace(/,/g, ''); // elimina comas
+    let telefono = normalizarTelefono(row[2] || '');
+    const valido = esTelefonoValido(telefono);
+
+    return (nombre && telefono)
+      ? { nombre, telefono, actividad: '', status: valido ? 'pending' : 'error' }
+      : null;
   }).filter(Boolean);
 }
 
@@ -82,9 +122,17 @@ async function handleFileUpload(file, activityName) {
   activities[activityName] = participants;
   updateActivityList();
   showStatus(`✅ Actividad "${activityName}" creada con ${participants.length} participantes.`, 'green');
+
+  // Mostrar la parte inferior
+  mainSection.classList.remove('hidden');
+
+  // Actualizar colores de botones
+  addActivityBtn.classList.remove('btn-active');
+  addActivityBtn.classList.add('btn-done');
+  actividadFilter.classList.add('btn-active'); // siguiente paso
 }
 
-/* ------------------ Actualizar lista de actividades ------------------ */
+/* ------------------ Actualizar lista ------------------ */
 function updateActivityList() {
   actividadFilter.innerHTML = '<option value="">-- Selecciona actividad --</option>';
   Object.keys(activities).forEach(act => {
@@ -97,6 +145,8 @@ function updateActivityList() {
 
 /* ------------------ Crear grupo ------------------ */
 createGroupBtn.addEventListener('click', async () => {
+  if (!validateConfig()) return;
+  
   if (!actividadFilter.value) {
     showStatus('❌ Selecciona una actividad.', 'red');
     return;
@@ -112,7 +162,7 @@ createGroupBtn.addEventListener('click', async () => {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        participants: ["34685647064"], // admin de Naizen
+        participants: ["34685647064"],
         subject: actividadFilter.value
       })
     });
@@ -120,15 +170,18 @@ createGroupBtn.addEventListener('click', async () => {
     let data;
     try { data = await res.json(); } catch { data = null; }
 
-    console.log("📦 Respuesta de la API (crear grupo):", data || "(sin datos)");
-
     if (res.ok && data?.id) {
       groupId = data.id;
       showStatus(`✅ Grupo creado: ${actividadFilter.value}`, 'green');
+
+      // actualizar botones
+      createGroupBtn.classList.remove('btn-active');
+      createGroupBtn.classList.add('btn-done');
+      addParticipantsBtn.classList.add('btn-active'); // siguiente paso
+
     } else {
       groupId = null;
       showStatus('❌ Error al crear grupo.', 'red');
-      console.warn("⚠️ No se recibió ID de grupo, valor actual:", groupId);
     }
 
   } catch (err) {
@@ -139,6 +192,8 @@ createGroupBtn.addEventListener('click', async () => {
 
 /* ------------------ Añadir participantes ------------------ */
 addParticipantsBtn.addEventListener('click', async () => {
+  if (!validateConfig()) return;
+  
   if (!groupId) {
     showStatus('❌ Crea primero el grupo.', 'red');
     return;
@@ -150,7 +205,9 @@ addParticipantsBtn.addEventListener('click', async () => {
 
   showStatus('📤 Añadiendo participantes...', 'black');
 
-  const telefonos = currentParticipants.map(p => normalizarTelefono(p.telefono));
+  const telefonos = currentParticipants
+    .filter(p => esTelefonoValido(p.telefono))
+    .map(p => normalizarTelefono(p.telefono));
 
   try {
     const res = await fetch(`${API_URL}/groups/${encodeURIComponent(groupId)}/participants`, {
@@ -166,15 +223,20 @@ addParticipantsBtn.addEventListener('click', async () => {
     let data;
     try { data = await res.json(); } catch { data = null; }
 
-    console.log("📦 Respuesta de la API (añadir participantes):", data || "(sin datos)");
-
     if (res.ok && data?.processed) {
-      currentParticipants = currentParticipants.map((p, i) => ({
-        ...p,
-        status: data.failed?.some(f => f === p.telefono) ? 'error' : 'success'
-      }));
+      currentParticipants = currentParticipants.map(p => {
+        if (!esTelefonoValido(p.telefono)) return { ...p, status: 'error' };
+        return data.failed?.includes(p.telefono)
+          ? { ...p, status: 'error' }
+          : { ...p, status: 'success' };
+      });
       renderParticipants();
       showStatus('✅ Participantes añadidos correctamente.', 'green');
+
+      // actualizar botón
+      addParticipantsBtn.classList.remove('btn-active');
+      addParticipantsBtn.classList.add('btn-done');
+
     } else {
       currentParticipants = currentParticipants.map(p => ({ ...p, status: 'error' }));
       renderParticipants();
@@ -209,4 +271,40 @@ actividadFilter.addEventListener('change', () => {
   currentParticipants = activities[selected] || [];
   renderParticipants();
   showStatus(`Mostrando ${currentParticipants.length} participantes de "${selected}"`);
+
+  // actualizar botón de seleccionar actividad
+  actividadFilter.classList.remove('btn-active');
+  actividadFilter.classList.add('btn-done');
+  createGroupBtn.classList.add('btn-active'); // siguiente paso
 });
+
+/* ------------------ Configuración API ------------------ */
+document.addEventListener('DOMContentLoaded', () => {
+  const saveConfigBtn = document.getElementById('saveConfigBtn');
+  if (saveConfigBtn) {
+    saveConfigBtn.addEventListener('click', () => {
+      if (saveConfig()) {
+        // Habilitar botones una vez configurado
+        createGroupBtn.disabled = false;
+        addParticipantsBtn.disabled = false;
+      }
+    });
+  }
+  
+  loadConfig();
+  
+  // Deshabilitar botones hasta configurar API
+  if (!API_URL || !API_KEY) {
+    createGroupBtn.disabled = true;
+    addParticipantsBtn.disabled = true;
+  }
+});
+
+/* ------------------ Validar configuración antes de usar API ------------------ */
+function validateConfig() {
+  if (!API_URL || !API_KEY) {
+    showStatus('❌ Configura primero tu API URL y Token', 'red');
+    return false;
+  }
+  return true;
+}
