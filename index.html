@@ -24,34 +24,37 @@
     
     <hr>
 
-    <!-- FILTRO Y BOTONES -->
-    <div class="controls">
-      <select id="actividadFilter">
-        <option value="">-- Selecciona actividad --</option>
-      </select>
-      <button id="createGroupBtn">Crear grupo en WhatsApp</button>
-      <p id="groupNameDisplay" style="font-weight:bold; color:green; margin-top:10px;"></p>
-      <button id="addParticipantsBtn">Añadir participantes</button>
+    <!-- TODO lo que aparece DESPUÉS -->
+    <div id="mainSection" class="hidden">
+      <!-- FILTRO Y BOTONES -->
+      <div class="controls">
+        <select id="actividadFilter">
+          <option value="">-- Selecciona actividad --</option>
+        </select>
+        <button id="createGroupBtn">Crear grupo en WhatsApp</button>
+        <p id="groupNameDisplay" style="font-weight:bold; color:green; margin-top:10px;"></p>
+        <button id="addParticipantsBtn">Añadir participantes</button>
+      </div>
+
+      <div id="status" class="status">Esperando acción...</div>
+
+      <div class="credentials">
+        <input type="text" id="adminPhone" placeholder="Teléfono admin Naizen">
+        <input type="text" id="apiKey" placeholder="Token API">
+      </div>
+
+      <!-- TABLA DE PARTICIPANTES -->
+      <table id="participants">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Teléfono</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
     </div>
-
-    <div id="status" class="status">Esperando acción...</div>
-
-    <div class="credentials">
-  <input type="text" id="adminPhone" placeholder="Teléfono admin Naizen">
-  <input type="text" id="apiKey" placeholder="Token API">
-</div>
-
-    <!-- TABLA DE PARTICIPANTES -->
-    <table id="participants">
-      <thead>
-        <tr>
-          <th>Nombre</th>
-          <th>Teléfono</th>
-          <th>Estado</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
   </div>
 
   <script src="app.js"></script>

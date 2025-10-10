@@ -1,5 +1,5 @@
 /* ------------------ CONFIG ------------------ */
-const API_URL = "https://naizenpf5.free.beeceptor.com"; // API simulada o real
+const API_URL = "https://naizenpf5.free.beeceptor.com";
 const API_KEY = "RiNr52I9SoPGV6ccVuF7LqPWx6IuT900";
 
 /* ------------------ Estado y DOM ------------------ */
@@ -8,14 +8,18 @@ const addParticipantsBtn = document.getElementById('addParticipantsBtn');
 const createGroupBtn = document.getElementById('createGroupBtn');
 const statusDiv = document.getElementById('status');
 const participantsDiv = document.querySelector('#participants tbody');
+const mainSection = document.getElementById('mainSection');
 
 const activityNameInput = document.getElementById('activityName');
 const csvFileInput = document.getElementById('csvFile');
 const addActivityBtn = document.getElementById('addActivityBtn');
 
-let activities = {};        // { actividad: [participantes] }
+let activities = {};
 let currentParticipants = [];
-let groupId = null;          // se asigna al crear el grupo
+let groupId = null;
+
+/* ------------------ Ocultar botón al iniciar ------------------ */
+addParticipantsBtn.style.display = "none"; // 👈 ocultamos al cargar
 
 /* ------------------ Helpers ------------------ */
 function showStatus(msg, color) {
@@ -23,20 +27,13 @@ function showStatus(msg, color) {
   statusDiv.style.color = color || 'black';
 }
 
-// Normaliza los números (quita espacios, añade 34 si falta)
 function normalizarTelefono(tel) {
   if (!tel) return "";
-  let numero = tel.toString().replace(/\D/g, ""); // quitar símbolos y espacios
-
-  // Si empieza por 6 o 7 y tiene 9 dígitos → añadimos prefijo 34
-  if (/^[67]\d{8}$/.test(numero)) {
-    numero = "34" + numero;
-  }
-
+  let numero = tel.toString().replace(/\D/g, "");
+  if (/^[67]\d{8}$/.test(numero)) numero = "34" + numero;
   return numero;
 }
 
-// Valida si el teléfono tiene formato correcto
 function esTelefonoValido(tel) {
   return (/^[67]\d{8}$/).test(tel) || (/^34[67]\d{8}$/).test(tel);
 }
@@ -62,11 +59,9 @@ function parseCSV(text) {
     skipEmptyLines: true
   });
 
-  // saltamos la primera fila si contiene texto tipo "Nombre" o "Teléfono"
   return result.data.slice(1).map(row => {
     if (row.length < 3) return null;
-
-    const nombre = (row[1] || '').trim();
+    const nombre = (row[1] || '').trim().replace(/,/g, '');
     let telefono = normalizarTelefono(row[2] || '');
     const valido = esTelefonoValido(telefono);
 
@@ -88,9 +83,10 @@ async function handleFileUpload(file, activityName) {
   activities[activityName] = participants;
   updateActivityList();
   showStatus(`✅ Actividad "${activityName}" creada con ${participants.length} participantes.`, 'green');
+  mainSection.classList.remove('hidden');
 }
 
-/* ------------------ Actualizar lista de actividades ------------------ */
+/* ------------------ Actualizar lista ------------------ */
 function updateActivityList() {
   actividadFilter.innerHTML = '<option value="">-- Selecciona actividad --</option>';
   Object.keys(activities).forEach(act => {
@@ -118,7 +114,7 @@ createGroupBtn.addEventListener('click', async () => {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        participants: ["34685647064"], // admin de Naizen
+        participants: ["34685647064"],
         subject: actividadFilter.value
       })
     });
@@ -126,15 +122,13 @@ createGroupBtn.addEventListener('click', async () => {
     let data;
     try { data = await res.json(); } catch { data = null; }
 
-    console.log("📦 Respuesta de la API (crear grupo):", data || "(sin datos)");
-
     if (res.ok && data?.id) {
       groupId = data.id;
       showStatus(`✅ Grupo creado: ${actividadFilter.value}`, 'green');
+      addParticipantsBtn.style.display = "inline-block"; // 👈 mostrar botón al crear grupo
     } else {
       groupId = null;
       showStatus('❌ Error al crear grupo.', 'red');
-      console.warn("⚠️ No se recibió ID de grupo, valor actual:", groupId);
     }
 
   } catch (err) {
@@ -156,7 +150,6 @@ addParticipantsBtn.addEventListener('click', async () => {
 
   showStatus('📤 Añadiendo participantes...', 'black');
 
-  // Filtramos solo los teléfonos válidos
   const telefonos = currentParticipants
     .filter(p => esTelefonoValido(p.telefono))
     .map(p => normalizarTelefono(p.telefono));
@@ -174,8 +167,6 @@ addParticipantsBtn.addEventListener('click', async () => {
 
     let data;
     try { data = await res.json(); } catch { data = null; }
-
-    console.log("📦 Respuesta de la API (añadir participantes):", data || "(sin datos)");
 
     if (res.ok && data?.processed) {
       currentParticipants = currentParticipants.map(p => {
