@@ -56,6 +56,9 @@ const activityNameInput = document.getElementById('activityName');
 const csvFileInput = document.getElementById('csvFile');
 const addActivityBtn = document.getElementById('addActivityBtn');
 
+const adminPhoneInput = document.getElementById('adminPhone');
+const apiKeyInput = document.getElementById('apiKey');
+
 let activities = {};
 let currentParticipants = [];
 let groupId = null;
@@ -152,17 +155,36 @@ createGroupBtn.addEventListener('click', async () => {
     return;
   }
 
+  // 🔒 Validar Teléfono y API Key antes de continuar
+  const adminPhone = adminPhoneInput.value.trim();
+  const apiKey = apiKeyInput.value.trim();
+
+  if (!adminPhone || !apiKey) {
+    showStatus('❌ Debes completar el Teléfono y el API Key antes de crear el grupo.', 'red');
+
+    if (!adminPhone) adminPhoneInput.style.border = '2px solid red';
+    else adminPhoneInput.style.border = '';
+
+    if (!apiKey) apiKeyInput.style.border = '2px solid red';
+    else apiKeyInput.style.border = '';
+
+    return;
+  }
+
+  adminPhoneInput.style.border = '';
+  apiKeyInput.style.border = '';
+
   showStatus('📱 Creando grupo...', 'black');
 
   try {
     const res = await fetch(`${API_URL}/groups`, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${API_KEY}`,
+        "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        participants: ["34685647064"],
+        participants: [normalizarTelefono(adminPhone)],
         subject: actividadFilter.value
       })
     });
@@ -213,7 +235,7 @@ addParticipantsBtn.addEventListener('click', async () => {
     const res = await fetch(`${API_URL}/groups/${encodeURIComponent(groupId)}/participants`, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${API_KEY}`,
+        "Authorization": `Bearer ${apiKeyInput.value.trim()}`,
         "Content-Type": "application/json",
         "Accept": "application/json"
       },
@@ -233,7 +255,6 @@ addParticipantsBtn.addEventListener('click', async () => {
       renderParticipants();
       showStatus('✅ Participantes añadidos correctamente.', 'green');
 
-      // actualizar botón
       addParticipantsBtn.classList.remove('btn-active');
       addParticipantsBtn.classList.add('btn-done');
 
@@ -272,7 +293,6 @@ actividadFilter.addEventListener('change', () => {
   renderParticipants();
   showStatus(`Mostrando ${currentParticipants.length} participantes de "${selected}"`);
 
-  // actualizar botón de seleccionar actividad
   actividadFilter.classList.remove('btn-active');
   actividadFilter.classList.add('btn-done');
   createGroupBtn.classList.add('btn-active'); // siguiente paso
