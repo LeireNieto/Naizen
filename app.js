@@ -16,6 +16,8 @@ const addActivityBtn = document.getElementById('addActivityBtn');
 const adminPhoneInput = document.getElementById('adminPhone');
 const apiKeyInput = document.getElementById('apiKey');
 
+const credencialesFileInput = document.getElementById('credencialesFile');
+
 let activities = {};
 let currentParticipants = [];
 let groupId = null;
@@ -249,4 +251,30 @@ actividadFilter.addEventListener('change', () => {
   actividadFilter.classList.remove('btn-active');
   actividadFilter.classList.add('btn-done');
   createGroupBtn.classList.add('btn-active');
+});
+
+/* ------------------ Cargar credenciales desde JSON ------------------ */
+credencialesFileInput?.addEventListener('change', async () => {
+  const file = credencialesFileInput.files[0];
+  if (!file) return;
+
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+
+    if (data.telefono) {
+      adminPhoneInput.value = data.telefono;
+      adminPhoneInput.readOnly = true; // bloquea el campo
+    }
+
+    if (data.apiKey) {
+      apiKeyInput.value = data.apiKey;
+      apiKeyInput.readOnly = true; // bloquea el campo
+    }
+
+    showStatus("✅ Credenciales cargadas correctamente.", "green");
+  } catch (err) {
+    console.error(err);
+    showStatus("❌ Error al leer el archivo de credenciales.", "red");
+  }
 });
