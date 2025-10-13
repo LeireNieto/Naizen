@@ -1,7 +1,5 @@
-<<<<<<< HEAD
-/* ------------------ CONFIG ------------------ */
-let API_URL = "https://naizenpf5.free.beeceptor.com";
-=======
+
+
 /* ------------------ CONFIG SEGURA ------------------ */
 // Variables de configuración - se cargan desde la interfaz del usuario
 let API_URL = "";
@@ -47,7 +45,6 @@ function saveConfig() {
   showStatus('✅ Configuración guardada de forma segura', 'green');
   return true;
 }
->>>>>>> 431bb43906919c70d20f02a1be89a017f1932a0a
 
 /* ------------------ Estado y DOM ------------------ */
 const actividadFilter = document.getElementById('actividadFilter');
@@ -209,21 +206,11 @@ createGroupBtn.addEventListener('click', async () => {
 
 /* ------------------ Añadir participantes ------------------ */
 addParticipantsBtn.addEventListener('click', async () => {
-<<<<<<< HEAD
+
   if (!groupId) { showStatus('❌ Crea primero el grupo.', 'red'); return; }
   if (currentParticipants.length === 0) { showStatus('❌ No hay participantes.', 'red'); return; }
-=======
-  if (!validateConfig()) return;
-  
-  if (!groupId) {
-    showStatus('❌ Crea primero el grupo.', 'red');
-    return;
-  }
-  if (currentParticipants.length === 0) {
-    showStatus('❌ No hay participantes.', 'red');
-    return;
-  }
->>>>>>> 431bb43906919c70d20f02a1be89a017f1932a0a
+
+
 
   showStatus('📤 Añadiendo participantes...', 'black');
 
@@ -298,7 +285,6 @@ actividadFilter.addEventListener('change', () => {
   createGroupBtn.classList.add('btn-active'); // siguiente paso
 });
 
-<<<<<<< HEAD
 /* ------------------ Configuración API ------------------ */
 document.addEventListener('DOMContentLoaded', () => {
   const saveConfigBtn = document.getElementById('saveConfigBtn');
@@ -329,7 +315,7 @@ function validateConfig() {
   }
   return true;
 }
-=======
+
 /* ------------------ Cargar credenciales desde JSON ------------------ */
 credencialesFileInput?.addEventListener('change', async () => {
   const file = credencialesFileInput.files[0];
@@ -350,4 +336,4 @@ credencialesFileInput?.addEventListener('change', async () => {
     showStatus("❌ Error al leer el archivo de credenciales.", "red");
   }
 });
->>>>>>> leire
+
