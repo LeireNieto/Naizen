@@ -59,6 +59,8 @@ const addActivityBtn = document.getElementById('addActivityBtn');
 const adminPhoneInput = document.getElementById('adminPhone');
 const apiKeyInput = document.getElementById('apiKey');
 
+const credencialesFileInput = document.getElementById('credencialesFile');
+
 let activities = {};
 let currentParticipants = [];
 let groupId = null;
@@ -298,6 +300,7 @@ actividadFilter.addEventListener('change', () => {
   createGroupBtn.classList.add('btn-active'); // siguiente paso
 });
 
+<<<<<<< HEAD
 /* ------------------ Configuración API ------------------ */
 document.addEventListener('DOMContentLoaded', () => {
   const saveConfigBtn = document.getElementById('saveConfigBtn');
@@ -328,3 +331,30 @@ function validateConfig() {
   }
   return true;
 }
+=======
+/* ------------------ Cargar credenciales desde JSON ------------------ */
+credencialesFileInput?.addEventListener('change', async () => {
+  const file = credencialesFileInput.files[0];
+  if (!file) return;
+
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+
+    if (data.telefono) {
+      adminPhoneInput.value = data.telefono;
+      adminPhoneInput.readOnly = true; // bloquea el campo
+    }
+
+    if (data.apiKey) {
+      apiKeyInput.value = data.apiKey;
+      apiKeyInput.readOnly = true; // bloquea el campo
+    }
+
+    showStatus("✅ Credenciales cargadas correctamente.", "green");
+  } catch (err) {
+    console.error(err);
+    showStatus("❌ Error al leer el archivo de credenciales.", "red");
+  }
+});
+>>>>>>> leire
