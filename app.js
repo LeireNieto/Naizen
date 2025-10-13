@@ -1,50 +1,5 @@
-
-
-/* ------------------ CONFIG SEGURA ------------------ */
-// Variables de configuración - se cargan desde la interfaz del usuario
-let API_URL = "";
-let API_KEY = "";
-
-// Función para inicializar configuración
-function loadConfig() {
-  const savedApiUrl = localStorage.getItem('naizen_api_url');
-  const savedApiKey = localStorage.getItem('naizen_api_key');
-  
-  if (savedApiUrl && savedApiKey) {
-    API_URL = savedApiUrl;
-    API_KEY = savedApiKey;
-    if (document.getElementById('apiUrl')) {
-      document.getElementById('apiUrl').value = API_URL;
-      document.getElementById('apiKey').value = '••••••••••••••••'; // Ocultar con puntos
-    }
-    showStatus('✅ Configuración cargada desde el almacenamiento local', 'green');
-  } else {
-    showStatus('⚠️ Configura tu API URL y Token para comenzar', 'orange');
-  }
-}
-
-// Función para guardar configuración
-function saveConfig() {
-  const apiUrl = document.getElementById('apiUrl').value.trim();
-  const apiKey = document.getElementById('apiKey').value.trim();
-  
-  if (!apiUrl || !apiKey || apiKey === '••••••••••••••••') {
-    showStatus('❌ Ingresa URL y Token válidos', 'red');
-    return false;
-  }
-  
-  API_URL = apiUrl;
-  API_KEY = apiKey;
-  
-  localStorage.setItem('naizen_api_url', API_URL);
-  localStorage.setItem('naizen_api_key', API_KEY);
-  
-  // Ocultar el token en la interfaz
-  document.getElementById('apiKey').value = '••••••••••••••••';
-  
-  showStatus('✅ Configuración guardada de forma segura', 'green');
-  return true;
-}
+/* ------------------ CONFIG ------------------ */
+let API_URL = "https://naizenpf5.free.beeceptor.com";
 
 /* ------------------ Estado y DOM ------------------ */
 const actividadFilter = document.getElementById('actividadFilter');
@@ -149,8 +104,6 @@ function updateActivityList() {
 
 /* ------------------ Crear grupo ------------------ */
 createGroupBtn.addEventListener('click', async () => {
-  if (!validateConfig()) return;
-  
   if (!actividadFilter.value) {
     showStatus('❌ Selecciona una actividad.', 'red');
     return;
@@ -206,11 +159,8 @@ createGroupBtn.addEventListener('click', async () => {
 
 /* ------------------ Añadir participantes ------------------ */
 addParticipantsBtn.addEventListener('click', async () => {
-
   if (!groupId) { showStatus('❌ Crea primero el grupo.', 'red'); return; }
   if (currentParticipants.length === 0) { showStatus('❌ No hay participantes.', 'red'); return; }
-
-
 
   showStatus('📤 Añadiendo participantes...', 'black');
 
@@ -282,39 +232,8 @@ actividadFilter.addEventListener('change', () => {
   showStatus(`Mostrando ${currentParticipants.length} participantes de "${selected}"`);
   actividadFilter.classList.remove('btn-active');
   actividadFilter.classList.add('btn-done');
-  createGroupBtn.classList.add('btn-active'); // siguiente paso
+  createGroupBtn.classList.add('btn-active');
 });
-
-/* ------------------ Configuración API ------------------ */
-document.addEventListener('DOMContentLoaded', () => {
-  const saveConfigBtn = document.getElementById('saveConfigBtn');
-  if (saveConfigBtn) {
-    saveConfigBtn.addEventListener('click', () => {
-      if (saveConfig()) {
-        // Habilitar botones una vez configurado
-        createGroupBtn.disabled = false;
-        addParticipantsBtn.disabled = false;
-      }
-    });
-  }
-  
-  loadConfig();
-  
-  // Deshabilitar botones hasta configurar API
-  if (!API_URL || !API_KEY) {
-    createGroupBtn.disabled = true;
-    addParticipantsBtn.disabled = true;
-  }
-});
-
-/* ------------------ Validar configuración antes de usar API ------------------ */
-function validateConfig() {
-  if (!API_URL || !API_KEY) {
-    showStatus('❌ Configura primero tu API URL y Token', 'red');
-    return false;
-  }
-  return true;
-}
 
 /* ------------------ Cargar credenciales desde JSON ------------------ */
 credencialesFileInput?.addEventListener('change', async () => {
@@ -336,4 +255,3 @@ credencialesFileInput?.addEventListener('change', async () => {
     showStatus("❌ Error al leer el archivo de credenciales.", "red");
   }
 });
-
