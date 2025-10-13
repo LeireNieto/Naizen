@@ -1,5 +1,5 @@
 /* ------------------ CONFIG ------------------ */
-const API_URL = "https://naizenpf5.free.beeceptor.com";
+let API_URL = "https://naizenpf5.free.beeceptor.com";
 
 /* ------------------ Estado y DOM ------------------ */
 const actividadFilter = document.getElementById('actividadFilter');
@@ -15,7 +15,6 @@ const addActivityBtn = document.getElementById('addActivityBtn');
 
 const adminPhoneInput = document.getElementById('adminPhone');
 const apiKeyInput = document.getElementById('apiKey');
-
 const credencialesFileInput = document.getElementById('credencialesFile');
 
 let activities = {};
@@ -62,7 +61,7 @@ function parseCSV(text) {
 
   return result.data.slice(1).map(row => {
     if (row.length < 3) return null;
-    const nombre = (row[1] || '').trim().replace(/,/g, ''); // elimina comas
+    const nombre = (row[1] || '').trim().replace(/,/g, '');
     let telefono = normalizarTelefono(row[2] || '');
     const valido = esTelefonoValido(telefono);
 
@@ -85,13 +84,11 @@ async function handleFileUpload(file, activityName) {
   updateActivityList();
   showStatus(`✅ Actividad "${activityName}" creada con ${participants.length} participantes.`, 'green');
 
-  // Mostrar la parte inferior
   mainSection.classList.remove('hidden');
 
-  // Actualizar colores de botones
   addActivityBtn.classList.remove('btn-active');
   addActivityBtn.classList.add('btn-done');
-  actividadFilter.classList.add('btn-active'); // siguiente paso
+  actividadFilter.classList.add('btn-active');
 }
 
 /* ------------------ Actualizar lista ------------------ */
@@ -112,19 +109,13 @@ createGroupBtn.addEventListener('click', async () => {
     return;
   }
 
-  // 🔒 Validar Teléfono y API Key antes de continuar
   const adminPhone = adminPhoneInput.value.trim();
   const apiKey = apiKeyInput.value.trim();
 
   if (!adminPhone || !apiKey) {
-    showStatus('❌ Debes completar el Teléfono y el API Key antes de crear el grupo.', 'red');
-
-    if (!adminPhone) adminPhoneInput.style.border = '2px solid red';
-    else adminPhoneInput.style.border = '';
-
-    if (!apiKey) apiKeyInput.style.border = '2px solid red';
-    else apiKeyInput.style.border = '';
-
+    showStatus('❌ Debes completar Teléfono y API Key antes de crear el grupo.', 'red');
+    if (!adminPhone) adminPhoneInput.style.border = '2px solid red'; else adminPhoneInput.style.border = '';
+    if (!apiKey) apiKeyInput.style.border = '2px solid red'; else apiKeyInput.style.border = '';
     return;
   }
 
@@ -136,10 +127,7 @@ createGroupBtn.addEventListener('click', async () => {
   try {
     const res = await fetch(`${API_URL}/groups`, {
       method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json"
-      },
+      headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         participants: [normalizarTelefono(adminPhone)],
         subject: actividadFilter.value
@@ -148,15 +136,15 @@ createGroupBtn.addEventListener('click', async () => {
 
     let data;
     try { data = await res.json(); } catch { data = null; }
+    console.log("Respuesta crear grupo:", data);
 
     if (res.ok && data?.id) {
       groupId = data.id;
       showStatus(`✅ Grupo creado: ${actividadFilter.value}`, 'green');
 
-      // actualizar botones
       createGroupBtn.classList.remove('btn-active');
       createGroupBtn.classList.add('btn-done');
-      addParticipantsBtn.classList.add('btn-active'); // siguiente paso
+      addParticipantsBtn.classList.add('btn-active');
 
     } else {
       groupId = null;
@@ -171,20 +159,22 @@ createGroupBtn.addEventListener('click', async () => {
 
 /* ------------------ Añadir participantes ------------------ */
 addParticipantsBtn.addEventListener('click', async () => {
-  if (!groupId) {
-    showStatus('❌ Crea primero el grupo.', 'red');
-    return;
-  }
-  if (currentParticipants.length === 0) {
-    showStatus('❌ No hay participantes.', 'red');
-    return;
-  }
+  if (!groupId) { showStatus('❌ Crea primero el grupo.', 'red'); return; }
+  if (currentParticipants.length === 0) { showStatus('❌ No hay participantes.', 'red'); return; }
 
   showStatus('📤 Añadiendo participantes...', 'black');
 
+  const adminPhone = normalizarTelefono(adminPhoneInput.value.trim());
+
+  // Excluimos al admin de la lista de participantes a añadir
   const telefonos = currentParticipants
-    .filter(p => esTelefonoValido(p.telefono))
+    .filter(p => esTelefonoValido(p.telefono) && normalizarTelefono(p.telefono) !== adminPhone)
     .map(p => normalizarTelefono(p.telefono));
+
+  if (telefonos.length === 0) {
+    showStatus('❌ Ningún número válido para añadir (solo está el admin o números inválidos).', 'red');
+    return;
+  }
 
   try {
     const res = await fetch(`${API_URL}/groups/${encodeURIComponent(groupId)}/participants`, {
@@ -199,25 +189,24 @@ addParticipantsBtn.addEventListener('click', async () => {
 
     let data;
     try { data = await res.json(); } catch { data = null; }
+    console.log("Respuesta añadir participantes:", data);
 
-    if (res.ok && data?.processed) {
-      currentParticipants = currentParticipants.map(p => {
-        if (!esTelefonoValido(p.telefono)) return { ...p, status: 'error' };
-        return data.failed?.includes(p.telefono)
-          ? { ...p, status: 'error' }
-          : { ...p, status: 'success' };
-      });
-      renderParticipants();
-      showStatus('✅ Participantes añadidos correctamente.', 'green');
+    // Actualizamos los estados
+    currentParticipants = currentParticipants.map(p => {
+      const tel = normalizarTelefono(p.telefono);
 
-      addParticipantsBtn.classList.remove('btn-active');
-      addParticipantsBtn.classList.add('btn-done');
+      if (!esTelefonoValido(p.telefono)) return { ...p, status: 'error' };
+      if (tel === adminPhone) return { ...p, status: 'success' }; // admin siempre ok
 
-    } else {
-      currentParticipants = currentParticipants.map(p => ({ ...p, status: 'error' }));
-      renderParticipants();
-      showStatus('❌ Error al añadir participantes.', 'red');
-    }
+      // Si hubo fallo y no es 409 del admin
+      const fallo = data?.failed?.includes(tel);
+      return fallo ? { ...p, status: 'error' } : { ...p, status: 'success' };
+    });
+
+    renderParticipants();
+    showStatus('✅ Participantes añadidos correctamente.', 'green');
+    addParticipantsBtn.classList.remove('btn-active');
+    addParticipantsBtn.classList.add('btn-done');
 
   } catch (err) {
     console.error(err);
@@ -225,29 +214,22 @@ addParticipantsBtn.addEventListener('click', async () => {
   }
 });
 
+
 /* ------------------ Crear actividad ------------------ */
 addActivityBtn.addEventListener('click', async () => {
   const name = activityNameInput.value.trim();
   if (!name) { showStatus('❌ Escribe un nombre de actividad.', 'red'); return; }
-
   const file = csvFileInput.files[0];
   if (!file) { showStatus('❌ Sube un archivo CSV.', 'red'); return; }
-
   await handleFileUpload(file, name);
 });
 
 /* ------------------ Selección de actividad ------------------ */
 actividadFilter.addEventListener('change', () => {
   const selected = actividadFilter.value;
-  if (!selected) {
-    currentParticipants = [];
-    renderParticipants();
-    return;
-  }
-  currentParticipants = activities[selected] || [];
+  currentParticipants = selected ? (activities[selected] || []) : [];
   renderParticipants();
   showStatus(`Mostrando ${currentParticipants.length} participantes de "${selected}"`);
-
   actividadFilter.classList.remove('btn-active');
   actividadFilter.classList.add('btn-done');
   createGroupBtn.classList.add('btn-active');
@@ -262,17 +244,12 @@ credencialesFileInput?.addEventListener('change', async () => {
     const text = await file.text();
     const data = JSON.parse(text);
 
-    if (data.telefono) {
-      adminPhoneInput.value = data.telefono;
-      adminPhoneInput.readOnly = true; // bloquea el campo
-    }
-
-    if (data.apiKey) {
-      apiKeyInput.value = data.apiKey;
-      apiKeyInput.readOnly = true; // bloquea el campo
-    }
+    if (data.telefono) { adminPhoneInput.value = data.telefono; adminPhoneInput.readOnly = true; }
+    if (data.apiKey) { apiKeyInput.value = data.apiKey; apiKeyInput.readOnly = true; }
+    if (data.apiUrl) { API_URL = data.apiUrl; }
 
     showStatus("✅ Credenciales cargadas correctamente.", "green");
+    console.log("API_URL cargada:", API_URL);
   } catch (err) {
     console.error(err);
     showStatus("❌ Error al leer el archivo de credenciales.", "red");
