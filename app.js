@@ -25,7 +25,6 @@ activitySection.classList.add('hidden');
 mainSection.classList.add('hidden');
 
 /* ------------------ Estado y DOM para actividades ------------------ */
-const actividadFilter = document.getElementById('actividadFilter');
 const addParticipantsBtn = document.getElementById('addParticipantsBtn');
 const createGroupBtn = document.getElementById('createGroupBtn');
 const statusDiv = document.getElementById('status');
@@ -38,6 +37,7 @@ const activityStatusDiv = document.getElementById('activityStatus');
 
 let activities = {};
 let currentParticipants = [];
+let currentActivityName = "";
 let groupId = null;
 
 /* ------------------ Helpers ------------------ */
@@ -131,27 +131,24 @@ async function handleFileUpload(file, activityName) {
   }
   participants.forEach(p => p.actividad = activityName);
   activities[activityName] = participants;
-  updateActivityList();
-  showStatus(`✅ Actividad "${activityName}" creada con ${participants.length} participantes.`, 'green');
+  
+  // Configurar actividad actual automáticamente
+  currentActivityName = activityName;
+  currentParticipants = participants;
+  
+  showActivityStatus(`✅ Actividad "${activityName}" creada con ${participants.length} participantes.`, 'success');
 
   // Ocultar texto de ayuda del CSV
   const csvHelp = document.getElementById('csvHelp');
   if (csvHelp) csvHelp.style.display = 'none';
 
-  mainSection.classList.remove('hidden'); // mostrar filtros y participantes
+  // Mostrar participantes directamente
+  renderParticipants();
+  mainSection.classList.remove('hidden');
   addActivityBtn.classList.remove('btn-active');
   addActivityBtn.classList.add('btn-done');
-  actividadFilter.classList.add('btn-active');
-}
-
-function updateActivityList() {
-  actividadFilter.innerHTML = '<option value="">-- Selecciona actividad --</option>';
-  Object.keys(activities).forEach(act => {
-    const option = document.createElement('option');
-    option.value = act;
-    option.textContent = act;
-    actividadFilter.appendChild(option);
-  });
+  createGroupBtn.classList.add('btn-active');
+  showStatus(`Actividad "${activityName}" lista. Puedes crear el grupo de WhatsApp.`, 'green');
 }
 
 /* ------------------ Event listeners para limpiar mensajes de error ------------------ */
@@ -190,18 +187,8 @@ addActivityBtn.addEventListener('click', async () => {
   await handleFileUpload(file, name);
 });
 
-actividadFilter.addEventListener('change', () => {
-  const selected = actividadFilter.value;
-  currentParticipants = selected ? (activities[selected] || []) : [];
-  renderParticipants();
-  showStatus(`Mostrando ${currentParticipants.length} participantes de "${selected}"`);
-  actividadFilter.classList.remove('btn-active');
-  actividadFilter.classList.add('btn-done');
-  createGroupBtn.classList.add('btn-active');
-});
-
 createGroupBtn.addEventListener('click', async () => {
-  if (!actividadFilter.value) { showStatus('❌ Selecciona una actividad.', 'red'); return; }
+  if (!currentActivityName) { showStatus('❌ Primero crea una actividad.', 'red'); return; }
   const adminPhone = adminPhoneInput.value.trim();
   const apiKey = apiKeyInput.value.trim();
   if (!adminPhone || !apiKey) {
@@ -212,13 +199,13 @@ createGroupBtn.addEventListener('click', async () => {
   try {
     const res = await fetch(construirURL(API_URL, '/groups'), {
       method: "POST",
-      headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ participants: [normalizarTelefono(adminPhone)], subject: actividadFilter.value })
+      headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify({ participants: [normalizarTelefono(adminPhone)], subject: currentActivityName })
     });
     let data; try { data = await res.json(); } catch { data = null; }
     if (res.ok && data?.id) {
       groupId = data.id;
-      showStatus(`✅ Grupo creado: ${actividadFilter.value}`, 'green');
+      showStatus(`✅ Grupo creado: ${currentActivityName}`, 'green');
       createGroupBtn.classList.remove('btn-active'); createGroupBtn.classList.add('btn-done');
       addParticipantsBtn.classList.add('btn-active');
     } else { groupId = null; showStatus('❌ Error al crear grupo.', 'red'); }
