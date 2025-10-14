@@ -12,7 +12,20 @@
     <img src="Naizenlogo.png" alt="Logo" class="logo">
     <h1>Grupos de Actividades</h1>
 
+<!-- Configuración inicial -->
+<div id="configSection">
+  <h2>Configuración inicial</h2>
+  <div class="config-row">
+    <input type="text" id="adminPhone" placeholder="Teléfono admin Naizen">
+    <input type="password" id="apiKey" placeholder="Token API">
+    <input type="password" id="apiUrl" placeholder="URL API">
+    <input type="file" id="credencialesFile" accept=".json">
+   
+  </div>
+</div>
+
     <!-- FORMULARIO PARA DAR DE ALTA ACTIVIDAD -->
+   <div id="activitySection" class="hidden">
     <div class="activity-form">
       <div class="form-row">
         <label for="activityName">Nombre actividad:</label>
@@ -21,6 +34,7 @@
       </div>
       <button id="addActivityBtn" class="btn-active">Agregar actividad</button>
     </div>
+   </div>
     
     <hr>
 
@@ -38,11 +52,7 @@
 
       <div id="status" class="status">Esperando acción...</div>
 
-      <div class="credentials">
-        <input type="text" id="adminPhone" placeholder="Teléfono admin Naizen">
-        <input type="password" id="apiKey" placeholder="Token API">
-        <input type="file" id="credencialesFile" accept=".json">
-      </div>
+     
 
       <!-- TABLA DE PARTICIPANTES -->
       <table id="participants">
