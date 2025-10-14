@@ -19,13 +19,16 @@ body {
 
 .container .logo {
   position: absolute;
-  top: 5px;
-  left: 5px;
-  width: 205px;
+  top: 20px;
+  left: 20px;
+  width: 180px;
   height: auto;
+  max-width: 200px;
+  z-index: 10;
 }
 
 h1 {
+  margin-top: 80px;
   margin-bottom: 30px;
   font-size: 23px;
   color: #10900a;
@@ -109,6 +112,39 @@ h1 {
   margin: 20px 0;
   font-weight: bold;
   color: #333;
+  padding: 10px;
+  border-radius: 5px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+#status[style*="red"] {
+  background-color: #ffe6e6;
+  border: 2px solid #ff4444;
+  color: #cc0000;
+}
+
+/* -------------------- Estado de actividad -------------------- */
+.activity-status {
+  margin: 10px 0;
+  padding: 10px;
+  border-radius: 5px;
+  text-align: center;
+  font-weight: bold;
+  min-height: 20px;
+  transition: all 0.3s ease;
+}
+
+.activity-status.error {
+  background-color: #ffe6e6;
+  border: 2px solid #ff4444;
+  color: #cc0000;
+}
+
+.activity-status.success {
+  background-color: #e6ffe6;
+  border: 2px solid #44aa44;
+  color: #006600;
 }
 
 /* -------------------- Tabla de participantes -------------------- */
@@ -159,3 +195,70 @@ th {
 .hidden {
   display: none !important;
 }
+
+/* -------------------- Sección de configuración -------------------- */
+#configSection {
+  display: block;
+  margin-bottom: 30px;
+}
+
+.config-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 15px;
+  align-items: center;
+  justify-content: center;
+}
+
+.config-row input {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 14px;
+}
+
+/* -------------------- Textos explicativos -------------------- */
+.upload-help {
+  background-color: #e8f4fd;
+  border: 1px solid #b8daff;
+  border-radius: 5px;
+  padding: 10px;
+  margin: 10px 0;
+  font-size: 14px;
+  text-align: left;
+  color: #004085;
+  line-height: 1.4;
+}
+
+.upload-help i {
+  color: #0066cc;
+  margin-right: 8px;
+}
+
+.upload-help strong {
+  color: #003366;
+}
+
+/* -------------------- Tooltip compacto -------------------- */
+.upload-help-compact {
+  margin: 8px 0;
+  font-size: 13px;
+  color: #666;
+  text-align: left;
+  position: relative;
+}
+
+/* -------------------- Info icono (emoji) -------------------- */
+.info-icon {
+  cursor: pointer;
+  transition: color 0.2s;
+  color: #0077cc;
+}
+.info-icon:hover {
+  color: #ff9800;
+  cursor: pointer;
+}
+
+
+

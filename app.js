@@ -19,6 +19,11 @@ adminPhoneInput.style.display = "inline-block";
 apiKeyInput.style.display = "inline-block";
 apiUrlInput.style.display = "inline-block";
 
+/* ------------------ Asegurar que la configuración inicial sea visible ------------------ */
+configSection.classList.remove('hidden');
+activitySection.classList.add('hidden');
+mainSection.classList.add('hidden');
+
 /* ------------------ Estado y DOM para actividades ------------------ */
 const actividadFilter = document.getElementById('actividadFilter');
 const addParticipantsBtn = document.getElementById('addParticipantsBtn');
@@ -29,12 +34,50 @@ const participantsDiv = document.querySelector('#participants tbody');
 const activityNameInput = document.getElementById('activityName');
 const csvFileInput = document.getElementById('csvFile');
 const addActivityBtn = document.getElementById('addActivityBtn');
+const activityStatusDiv = document.getElementById('activityStatus');
 
 let activities = {};
 let currentParticipants = [];
 let groupId = null;
 
 /* ------------------ Helpers ------------------ */
+function showActivityStatus(msg, type = '') {
+  activityStatusDiv.textContent = msg;
+  activityStatusDiv.className = `activity-status ${type}`;
+}
+
+function resetToInitialConfig() {
+  // Mostrar solo la sección de configuración
+  configSection.classList.remove('hidden');
+  activitySection.classList.add('hidden');
+  mainSection.classList.add('hidden');
+  
+  // Limpiar formularios
+  adminPhoneInput.value = "";
+  apiKeyInput.value = "";
+  apiUrlInput.value = "";
+  credencialesFileInput.value = "";
+  activityNameInput.value = "";
+  csvFileInput.value = "";
+  
+  // Limpiar estados
+  showActivityStatus('');
+  activities = {};
+  currentParticipants = [];
+  groupId = null;
+  
+  // Resetear filtros y botones
+  actividadFilter.innerHTML = '<option value="">-- Selecciona actividad --</option>';
+  
+}
+
+function construirURL(base, endpoint) {
+  // Eliminar barra final de base y barra inicial de endpoint si existen
+  const baseClean = base.replace(/\/+$/, '');
+  const endpointClean = endpoint.replace(/^\/+/, '');
+  return `${baseClean}/${endpointClean}`;
+}
+
 function showStatus(msg, color) {
   statusDiv.textContent = msg;
   statusDiv.style.color = color || 'black';
@@ -91,6 +134,10 @@ async function handleFileUpload(file, activityName) {
   updateActivityList();
   showStatus(`✅ Actividad "${activityName}" creada con ${participants.length} participantes.`, 'green');
 
+  // Ocultar texto de ayuda del CSV
+  const csvHelp = document.getElementById('csvHelp');
+  if (csvHelp) csvHelp.style.display = 'none';
+
   mainSection.classList.remove('hidden'); // mostrar filtros y participantes
   addActivityBtn.classList.remove('btn-active');
   addActivityBtn.classList.add('btn-done');
@@ -107,12 +154,39 @@ function updateActivityList() {
   });
 }
 
+/* ------------------ Event listeners para limpiar mensajes de error ------------------ */
+activityNameInput.addEventListener('input', () => {
+  if (activityStatusDiv.textContent.includes('nombre')) {
+    showActivityStatus('');
+  }
+});
+
+csvFileInput.addEventListener('change', () => {
+  if (activityStatusDiv.textContent.includes('CSV')) {
+    showActivityStatus('');
+  }
+});
+
 /* ------------------ Eventos de actividades y grupos ------------------ */
 addActivityBtn.addEventListener('click', async () => {
   const name = activityNameInput.value.trim();
-  if (!name) { showStatus('❌ Escribe un nombre de actividad.', 'red'); return; }
   const file = csvFileInput.files[0];
-  if (!file) { showStatus('❌ Sube un archivo CSV.', 'red'); return; }
+  
+  // Limpiar mensaje anterior
+  showActivityStatus('');
+  
+  // Validar nombre de actividad
+  if (!name) { 
+    showActivityStatus('❌ Por favor, escribe un nombre para la actividad.', 'error'); 
+    return; 
+  }
+  
+  // Validar archivo CSV
+  if (!file) { 
+    showActivityStatus('❌ Por favor, selecciona un archivo CSV.', 'error'); 
+    return; 
+  }
+  
   await handleFileUpload(file, name);
 });
 
@@ -136,7 +210,7 @@ createGroupBtn.addEventListener('click', async () => {
   }
   showStatus('📱 Creando grupo...', 'black');
   try {
-    const res = await fetch(`${API_URL}/groups`, {
+    const res = await fetch(construirURL(API_URL, '/groups'), {
       method: "POST",
       headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({ participants: [normalizarTelefono(adminPhone)], subject: actividadFilter.value })
@@ -161,7 +235,7 @@ addParticipantsBtn.addEventListener('click', async () => {
     .map(p => normalizarTelefono(p.telefono));
   if (telefonos.length === 0) { showStatus('❌ Ningún número válido para añadir.', 'red'); return; }
   try {
-    const res = await fetch(`${API_URL}/groups/${encodeURIComponent(groupId)}/participants`, {
+    const res = await fetch(construirURL(API_URL, `/groups/${encodeURIComponent(groupId)}/participants`), {
       method: "POST",
       headers: { "Authorization": `Bearer ${apiKeyInput.value.trim()}`, "Content-Type": "application/json", "Accept": "application/json" },
       body: JSON.stringify({ participants: telefonos })
@@ -202,6 +276,10 @@ credencialesFileInput.addEventListener('change', async () => {
 
     API_URL = data.apiUrl;
 
+    // Ocultar texto de ayuda de configuración
+    const configHelp = document.getElementById('configHelp');
+    if (configHelp) configHelp.style.display = 'none';
+
     // Ocultar sección de credenciales
     configSection.style.display = "none";
 
@@ -215,3 +293,5 @@ credencialesFileInput.addEventListener('change', async () => {
     showStatus("❌ Error al leer el archivo JSON.", "red");
   }
 });
+
+

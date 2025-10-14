@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>Gestión de Actividades</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="modal.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 </head>
@@ -20,18 +21,26 @@
     <input type="password" id="apiKey" placeholder="Token API">
     <input type="password" id="apiUrl" placeholder="URL API">
     <input type="file" id="credencialesFile" accept=".json">
-   
+  </div>
+  <div class="upload-help-compact" id="configHelp">
+    <span class="info-icon tooltip-icon" data-tooltip="Sube un archivo JSON con tu configuración: teléfono, token API y URL de la API de WhatsApp.">ℹ️</span>
+    <span>Archivo JSON de configuración</span>
   </div>
 </div>
 
     <!-- FORMULARIO PARA DAR DE ALTA ACTIVIDAD -->
-   <div id="activitySection" class="hidden">
+   <div id="activitySection">
     <div class="activity-form">
       <div class="form-row">
         <label for="activityName">Nombre actividad:</label>
         <input type="text" id="activityName" placeholder="Ejemplo: Taller de pintura">
         <input type="file" id="csvFile" accept=".csv">
       </div>
+      <div class="upload-help-compact" id="csvHelp">
+        <span class="info-icon tooltip-icon" data-tooltip="Sube un archivo CSV exportado de Google Sheets. La segunda columna debe contener el nombre y la tercera columna el número de teléfono móvil.">ℹ️</span>
+        <span>CSV: Col2=Nombre | Col3=Teléfono</span>
+      </div>
+      <div id="activityStatus" class="activity-status"></div>
       <button id="addActivityBtn" class="btn-active">Agregar actividad</button>
     </div>
    </div>
@@ -68,6 +77,7 @@
     </div>
   </div>
 
+  <script src="modal.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
